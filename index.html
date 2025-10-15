@@ -719,15 +719,20 @@
     }, [allMiniaturesList, collection, filter, searchTerm]);
 
 
-// ... (código anterior omitido por brevidade)
 
-    // ATUALIZADO: Função exportToPDF modificada para remover os emojis (causadores do 'L ')
+ // ... (código anterior omitido por brevidade)
+
+    // ATUALIZADO: Função exportToPDF com o título centralizado
     const exportToPDF = async () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
         doc.setFontSize(18);
-        doc.text("Relatório da Coleção Maisto", 14, 22);
+        
+        // ALTERAÇÃO AQUI: Título centralizado
+        const pageWidth = doc.internal.pageSize.getWidth();
+        doc.text("Relatório da Coleção Maisto", pageWidth / 2, 22, { align: 'center' });
+
         doc.setFontSize(9); // Reduzindo o tamanho da fonte para melhor ajuste
         doc.setTextColor(100);
 
@@ -758,8 +763,10 @@
         const totalWidth = doc.internal.pageSize.getWidth() - 2 * margin; // Largura útil
         const columnWidth = totalWidth / columns;
         const imageWidth = columnWidth - 5; // Largura da imagem
-        const imageHeight = 25; // Altura da imagem
-        const itemHeight = 45; // Altura total de um item (imagem + texto)
+        
+        // ALTERAÇÃO PARA 6 LINHAS/PÁGINA (18 MINIATURAS)
+        const imageHeight = 20; // Altura da imagem reduzida
+        const itemHeight = 40; // Altura total de um item reduzida (6 * 40 + 30 = 270 < 280)
 
         for (let i = 0; i < filteredMiniatures.length; i += columns) {
             // Verifica quebra de página ANTES de processar a linha
@@ -779,7 +786,6 @@
                 try {
                     const imgData = await loadImageAsBase64(mini.image);
                     if (imgData) {
-                        // A jsPDF tem dificuldade em calcular a proporção se não souber o tipo
                         doc.addImage(imgData, 'JPEG', x, y, imageWidth, imageHeight);
                     } else {
                         // Fallback: Retângulo cinza com "No Img"
@@ -799,7 +805,6 @@
                 }
 
                 // 2. Adiciona o texto abaixo da imagem
-                // ALTERAÇÃO AQUI: Remoção dos emojis
                 const status = collection[mini.brand]?.[mini.id] ? "Tenho: SIM" : "Tenho: NAO";
                 const line1 = mini.name; // Nome do carro (modelo)
                 
@@ -816,7 +821,8 @@
 
         doc.save("colecao_maisto.pdf");
     };
-    
+
+   
     const BackgroundWrapper = ({ children }) => (
       <div className="min-h-screen bg-cover bg-center flex flex-col items-center justify-start text-white p-4"
         style={{ backgroundImage: "url('img/alemed.png')", backgroundAttachment: "fixed" }}>
