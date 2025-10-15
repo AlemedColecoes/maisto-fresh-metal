@@ -635,10 +635,8 @@
 
    };
   const brandsList = Object.keys(initialMiniaturesByBrand).sort();
-
   const LOCAL_STORAGE_KEY_COLLECTION = "maistoCollectionData";
   const LOCAL_STORAGE_KEY_LOCKED = "maistoLockedData";
-
   const getInitialCollection = () => JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_COLLECTION) || "{}");
   const getInitialLockedItems = () => JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_LOCKED) || "{}");
 
@@ -653,7 +651,6 @@
 
     useEffect(() => localStorage.setItem(LOCAL_STORAGE_KEY_COLLECTION, JSON.stringify(collection)), [collection]);
     useEffect(() => localStorage.setItem(LOCAL_STORAGE_KEY_LOCKED, JSON.stringify(lockedItems)), [lockedItems]);
-
     useEffect(() => {
       const handlePopState = () => {
         if (view === 'brand' || view === 'all') {
@@ -718,20 +715,22 @@
             .filter(mini => mini.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }, [allMiniaturesList, collection, filter, searchTerm]);
 
+
+
 // ... (código anterior omitido por brevidade)
 
-    // ATUALIZADO: Função exportToPDF com o título centralizado
+    // CORREÇÃO: Função exportToPDF mantida com Y inicial maior e Y subsequente menor
     const exportToPDF = async () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
         doc.setFontSize(18);
         
-        // ALTERAÇÃO AQUI: Título centralizado
         const pageWidth = doc.internal.pageSize.getWidth();
-        doc.text("Relatório da Coleção Maisto", pageWidth / 2, 22, { align: 'center' });
+        const titleHeight = 22; 
+        doc.text("Relatório da Coleção Maisto", pageWidth / 2, titleHeight, { align: 'center' });
 
-        doc.setFontSize(8); // Fonte menor para 5 colunas
+        doc.setFontSize(7);
         doc.setTextColor(100);
 
         const loadImageAsBase64 = (url) => {
@@ -748,30 +747,33 @@
                 };
                 img.onerror = (e) => {
                     console.error("Falha ao carregar imagem:", url, e);
-                    resolve(null); // Resolve com null se a imagem falhar
+                    resolve(null);
                 };
                 img.src = url;
             });
         };
 
-        let y = 30; // Posição vertical inicial
-        const pageHeight = 280; // Altura máxima da página
-        // MODIFICAÇÃO: Aumenta o número de colunas para 5
-        const columns = 5; // Número de colunas (5 miniaturas por linha)
-        const margin = 5; // Margem lateral reduzida
-        const totalWidth = doc.internal.pageSize.getWidth() - 2 * margin; // Largura útil
+        // Y inicial na PRIMEIRA PÁGINA: 30 para não sobrepor o título (Y=22).
+        let y = 30; 
+        const pageHeight = 280; 
+        const columns = 5; 
+        const margin = 5; 
+        const totalWidth = doc.internal.pageSize.getWidth() - 2 * margin; 
         const columnWidth = totalWidth / columns;
-        const imageWidth = columnWidth - 2; // Largura da imagem
+        const imageWidth = columnWidth - 2; 
 
-        // MODIFICAÇÃO: Ajusta a altura para caber 5 linhas por página (5 * 50 + 30 = 280)
-        const imageHeight = 15; // Altura da imagem reduzida
-        const itemHeight = 50; // Altura total de um item ajustada para 5 linhas/página
-
+        // OTIMIZAÇÃO MÁXIMA PARA 1CM DE ESPAÇAMENTO:
+        const imageHeight = 12; 
+        const textSpace = 8; 
+        const spacing = 10; 
+        const itemHeight = imageHeight + textSpace + spacing;
+        
         for (let i = 0; i < filteredMiniatures.length; i += columns) {
-            // Verifica quebra de página ANTES de processar a linha
-            if (y + itemHeight > pageHeight) {
+            // Quebra de página: Verifica se a próxima linha ultrapassa o limite inferior.
+            if (y + itemHeight > pageHeight - margin) { 
                 doc.addPage();
-                y = 15; // Nova posição vertical no topo
+                // Y na SEGUNDA PÁGINA (e seguintes): Reseta para a margem superior (5) para maximizar.
+                y = margin; 
             }
 
             for (let j = 0; j < columns; j++) {
@@ -779,15 +781,14 @@
                 if (index >= filteredMiniatures.length) break;
 
                 const mini = filteredMiniatures[index];
-                const x = margin + j * columnWidth + 1; // Posição horizontal
+                const x = margin + j * columnWidth + 1; 
 
-                // 1. Tenta carregar e adicionar a imagem
+                // 1. Imagem
                 try {
                     const imgData = await loadImageAsBase64(mini.image);
                     if (imgData) {
                         doc.addImage(imgData, 'JPEG', x, y, imageWidth, imageHeight);
                     } else {
-                        // Fallback: Retângulo cinza com "No Img"
                         doc.setFillColor(230, 230, 230);
                         doc.rect(x, y, imageWidth, imageHeight, 'F');
                         doc.setTextColor(150);
@@ -795,7 +796,6 @@
                         doc.setTextColor(100);
                     }
                 } catch (error) {
-                    // Fallback de erro mais robusto
                     doc.setFillColor(230, 230, 230);
                     doc.rect(x, y, imageWidth, imageHeight, 'F');
                     doc.setTextColor(150);
@@ -803,20 +803,18 @@
                     doc.setTextColor(100);
                 }
 
-                // 2. Adiciona o texto abaixo da imagem
+                // 2. Texto
                 const status = collection[mini.brand]?.[mini.id] ? "Tenho: SIM" : "Tenho: NAO";
-                const line1 = mini.name; // Nome do carro (modelo)
+                const line1 = mini.name;
                 
-                // Quebra de linha no nome do modelo se for muito longo
-                // O tamanho da fonte é 8, o fator de escala para linhas por texto deve ser ajustado, 3.5 funciona bem para linha simples.
+                // Quebra de linha
                 const textLines = doc.splitTextToSize(line1, imageWidth);
                 
-                doc.text(textLines, x, y + imageHeight + 2); // Nome do modelo
-                // Ajuste de posição vertical para o status. 3.2 é um bom fator para a fonte 8.
-                doc.text(status, x, y + imageHeight + 2 + (textLines.length * 3.2)); // Status
+                doc.text(textLines, x, y + imageHeight + 1);
+                doc.text(status, x, y + imageHeight + 1 + (textLines.length * 3.2)); 
             }
             
-            // Avança para a próxima linha vertical
+            // Avança para a próxima linha vertical (adiciona o itemHeight total)
             y += itemHeight;
         }
 
@@ -914,18 +912,23 @@
       );
     }
 
-    // Home view
+     // Home view
     return (
       <BackgroundWrapper>
-        <div className="w-full flex flex-col md:flex-row md:justify-between items-center mb-8">
-          <h1 className="text-4xl font-extrabold text-purple-400 text-center">Coleção Maisto</h1>
+        <div className="w-full relative text-center mb-4">
+          <h1 className="text-5xl font-extrabold text-purple-300">Coleção Maisto</h1>
           <div className="text-right w-full md:w-auto mt-4 md:mt-0">
             <h2 className="font-bold text-lg text-purple-300">Minha Coleção</h2>
             <p className="text-2xl font-mono">{totalCollectedCount} / {totalMiniaturesCount}</p>
           </div>
         </div>
+        <p className="text-2xl text-center text-gray-400">Selecione a marca para visualizar sua coleção.</p>
+        
+{/* NOVA LINHA SEPARADORA AQUI */}
+{/*      <div className="w-full border-t border-gray-500/50 mb-8 max-w-5xl"></div>  */}
 
-        <p className="mb-8 text-center text-gray-300">Selecione a marca para visualizar sua coleção.</p>
+ {/* SEPARADOR INVISÍVEL AQUI: Cria um espaço vertical de mb-8. */}
+        <div className="w-full h-0 mb-8 max-w-5xl"></div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full max-w-5xl">
           {brandsList.map((brand) => {
@@ -939,9 +942,9 @@
             )
           })}
         </div>
-
-        <div className="w-full flex justify-center mt-8">
-            <button onClick={() => navigate('all')} className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold shadow-lg">
+        
+        <div className="absolute bottom-6 right-6">
+            <button onClick={() => navigate('all')} className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold shadow-lg">
                 Ver Todas as Miniaturas
             </button>
         </div>
@@ -954,4 +957,3 @@
 
 </body>
 </html>
-
