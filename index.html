@@ -718,9 +718,7 @@
             .filter(mini => mini.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }, [allMiniaturesList, collection, filter, searchTerm]);
 
-
-
- // ... (código anterior omitido por brevidade)
+// ... (código anterior omitido por brevidade)
 
     // ATUALIZADO: Função exportToPDF com o título centralizado
     const exportToPDF = async () => {
@@ -728,12 +726,12 @@
         const doc = new jsPDF();
 
         doc.setFontSize(18);
-        
+        
         // ALTERAÇÃO AQUI: Título centralizado
         const pageWidth = doc.internal.pageSize.getWidth();
         doc.text("Relatório da Coleção Maisto", pageWidth / 2, 22, { align: 'center' });
 
-        doc.setFontSize(9); // Reduzindo o tamanho da fonte para melhor ajuste
+        doc.setFontSize(8); // Fonte menor para 5 colunas
         doc.setTextColor(100);
 
         const loadImageAsBase64 = (url) => {
@@ -758,15 +756,16 @@
 
         let y = 30; // Posição vertical inicial
         const pageHeight = 280; // Altura máxima da página
-        const columns = 3; // Número de colunas
-        const margin = 10; // Margem lateral
+        // MODIFICAÇÃO: Aumenta o número de colunas para 5
+        const columns = 5; // Número de colunas (5 miniaturas por linha)
+        const margin = 5; // Margem lateral reduzida
         const totalWidth = doc.internal.pageSize.getWidth() - 2 * margin; // Largura útil
         const columnWidth = totalWidth / columns;
-        const imageWidth = columnWidth - 5; // Largura da imagem
-        
-        // ALTERAÇÃO PARA 6 LINHAS/PÁGINA (18 MINIATURAS)
-        const imageHeight = 20; // Altura da imagem reduzida
-        const itemHeight = 40; // Altura total de um item reduzida (6 * 40 + 30 = 270 < 280)
+        const imageWidth = columnWidth - 2; // Largura da imagem
+
+        // MODIFICAÇÃO: Ajusta a altura para caber 5 linhas por página (5 * 50 + 30 = 280)
+        const imageHeight = 15; // Altura da imagem reduzida
+        const itemHeight = 50; // Altura total de um item ajustada para 5 linhas/página
 
         for (let i = 0; i < filteredMiniatures.length; i += columns) {
             // Verifica quebra de página ANTES de processar a linha
@@ -780,7 +779,7 @@
                 if (index >= filteredMiniatures.length) break;
 
                 const mini = filteredMiniatures[index];
-                const x = margin + j * columnWidth + 2; // Posição horizontal
+                const x = margin + j * columnWidth + 1; // Posição horizontal
 
                 // 1. Tenta carregar e adicionar a imagem
                 try {
@@ -809,10 +808,12 @@
                 const line1 = mini.name; // Nome do carro (modelo)
                 
                 // Quebra de linha no nome do modelo se for muito longo
+                // O tamanho da fonte é 8, o fator de escala para linhas por texto deve ser ajustado, 3.5 funciona bem para linha simples.
                 const textLines = doc.splitTextToSize(line1, imageWidth);
                 
-                doc.text(textLines, x, y + imageHeight + 3); // Nome do modelo
-                doc.text(status, x, y + imageHeight + 3 + (textLines.length * 3.5)); // Status
+                doc.text(textLines, x, y + imageHeight + 2); // Nome do modelo
+                // Ajuste de posição vertical para o status. 3.2 é um bom fator para a fonte 8.
+                doc.text(status, x, y + imageHeight + 2 + (textLines.length * 3.2)); // Status
             }
             
             // Avança para a próxima linha vertical
@@ -953,3 +954,4 @@
 
 </body>
 </html>
+
