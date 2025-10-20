@@ -731,20 +731,20 @@
 
 
 // CORREÇÃO: Função exportToPDF com cálculo de proporção e espaçamento
-// CORREÇÃO: Função exportToPDF que REPLICA o layout do Card do HTML
-// CORREÇÃO: Função exportToPDF com correção de FONT STYLE
-// CORREÇÃO: Função exportToPDF com correção do nome da função (V4)
     const exportToPDF = async () => {
-        console.log("Iniciando exportação para PDF..."); 
-
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
         doc.setFontSize(18);
+        
         const pageWidth = doc.internal.pageSize.getWidth();
-        doc.text("Relatório da Coleção Maisto", pageWidth / 2, 22, { align: 'center' });
+        const titleHeight = 22; 
+        doc.text("Relatório da Coleção Maisto", pageWidth / 2, titleHeight, { align: 'center' });
 
-        // Função auxiliar para carregar imagens
+        doc.setFontSize(7);
+        doc.setTextColor(100);
+
+        // MUDANÇA: Esta função agora retorna um objeto com { dataUrl, width, height }
         const loadImageAsBase64 = (url) => {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -755,6 +755,7 @@
                     canvas.height = img.height;
                     const ctx = canvas.getContext("2d");
                     ctx.drawImage(img, 0, 0);
+                    // Resolve com um objeto contendo a URL e as dimensões originais
                     resolve({
                         dataUrl: canvas.toDataURL("image/jpeg"),
                         width: img.width,
@@ -763,191 +764,104 @@
                 };
                 img.onerror = (e) => {
                     console.error("Falha ao carregar imagem:", url, e);
-                    resolve({ dataUrl: null, width: 0, height: 0 });
+                    // Resolve com dataUrl nula em caso de erro
+                    resolve({ dataUrl: null });
                 };
                 img.src = url;
             });
         };
 
-        // --- Configurações do Layout ---
-        let y = 30; // Y inicial
+        // Y inicial na PRIMEIRA PÁGINA: 30
+        let y = 30; 
         const pageHeight = 280; 
-        const margin = 10; // Margem da página
         const columns = 5; 
-        const columnSpacing = 4;
-        const rowSpacing = 4;
-        const usableWidth = doc.internal.pageSize.getWidth() - 2 * margin;
-        const cardWidth = (usableWidth - (columns - 1) * columnSpacing) / columns;
+        const margin = 5; 
+        const totalWidth = doc.internal.pageSize.getWidth() - 2 * margin; 
+        const columnWidth = totalWidth / columns; // Largura total da coluna
+        const imageWidth = columnWidth - 2; // Largura MÁXIMA para imagem/placeholder
+        const imageHeight = 12; // Altura FIXA da imagem (conforme solicitado)
 
-        // --- Definição da Estrutura INTERNA do Card (em mm) ---
-        const cardPadding = 3;
-        const cardCornerRadius = 3;
-        const imageContainerWidth = cardWidth - 2 * cardPadding;
-        const imageContainerHeight = 30; 
-        const imageContainerColor = "#f3f4f6"; 
-        const tenhoBoxHeight = 8;
-        const cardHeight = cardPadding + imageContainerHeight + 18 + tenhoBoxHeight + cardPadding; // Total ~62mm
-
-        // Cores
-        const colorBorderCollected = "#10b981";
-        const colorBorderDefault = "#e5e7eb";
-        const colorTextName = "#1f2937";
-        const colorTextBrand = "#6b7280";
-        const colorCheckboxBorder = "#9ca3af";
-        const colorCheckboxChecked = "#059669"; 
-
+        // SUGESTÃO/MUDANÇA: Aumentei o textSpace de 8 para 12.
+        // Isso dá mais espaço vertical para o nome e o status, evitando que
+        // o texto de uma linha sobreponha a imagem da linha de baixo.
+        const textSpace = 12; // Era 8
+        const spacing = 10; 
+        const itemHeight = imageHeight + textSpace + spacing; // Altura total do item
         
-        // --- Loop Principal ---
-        try { 
-            for (let i = 0; i < filteredMiniatures.length; i += columns) { 
-                
-                if (y + cardHeight > pageHeight - margin) { 
-                    doc.addPage();
-                    y = margin; 
-                }
-
-                for (let j = 0; j < columns; j++) { 
-                    const index = i + j;
-                    if (index >= filteredMiniatures.length) break;
-
-                    const mini = filteredMiniatures[index];
-                    const isCollected = !!collection[mini.brand]?.[mini.id];
-                    const x = margin + j * (cardWidth + columnSpacing);
-
-                    // MUDANÇA: Corrigido de saveGState para saveGraphicsState
-                    doc.saveGraphicsState();
-
-                    // --- A. Desenhar Card (Fundo Branco e Borda) ---
-                    doc.setFillColor("#ffffff"); 
-                    if (isCollected) {
-                        doc.setDrawColor(colorBorderCollected);
-                        doc.setLineWidth(1.5); 
-                    } else {
-                        doc.setDrawColor(colorBorderDefault);
-                        doc.setLineWidth(0.5); 
-                    }
-                    doc.roundedRect(x, y, cardWidth, cardHeight, cardCornerRadius, cardCornerRadius, 'FD'); 
-
-                    // --- B. Desenhar Container da Imagem (Box Cinza) ---
-                    const imgContainerX = x + cardPadding;
-                    const imgContainerY = y + cardPadding;
-                    doc.setFillColor(imageContainerColor);
-                    doc.setDrawColor(imageContainerColor); 
-                    doc.roundedRect(
-                        imgContainerX, 
-                        imgContainerY, 
-                        imageContainerWidth, 
-                        imageContainerHeight, 
-                        cardCornerRadius - 1, 
-                        cardCornerRadius - 1,
-                        'F' 
-                    );
-
-                    // --- C. Carregar e Desenhar Imagem (com 'object-contain') ---
-                    const imgResult = await loadImageAsBase64(mini.image);
-                    if (imgResult && imgResult.dataUrl) {
-                        const w = imgResult.width;
-                        const h = imgResult.height;
-                        const containerW = imageContainerWidth;
-                        const containerH = imageContainerHeight;
-                        const imgRatio = w / h;
-                        const containerRatio = containerW / containerH;
-
-                        let finalW, finalH, imgX, imgY;
-
-                        if (imgRatio > containerRatio) { 
-                            finalW = containerW;
-                            finalH = finalW / imgRatio;
-                        } else { 
-                            finalH = containerH;
-                            finalW = finalH * imgRatio;
-                        }
-
-                        imgX = imgContainerX + (containerW - finalW) / 2;
-                        imgY = imgContainerY + (containerH - finalH) / 2;
-                        
-                        doc.addImage(imgResult.dataUrl, 'JPEG', imgX, imgY, finalW, finalH);
-                    } else {
-                        doc.setFontSize(8);
-                        doc.setTextColor(colorTextBrand);
-                        doc.text("Erro Img", imgContainerX + imageContainerWidth / 2, imgContainerY + imageContainerHeight / 2, { align: 'center', baseline: 'middle' });
-                    }
-
-                    // --- D. Desenhar Textos (Nome e Marca) ---
-                    const textCenterX = x + cardWidth / 2;
-
-                    // Nome
-                    doc.setFontStyle("bold"); 
-                    doc.setFontSize(8);
-                    doc.setTextColor(colorTextName);
-                    const nameY = imgContainerY + imageContainerHeight + 6;
-                    const splitName = doc.splitTextToSize(mini.name, imageContainerWidth - 2); 
-                    doc.text(splitName, textCenterX, nameY, { align: 'center' });
-                    
-                    // Marca
-                    const nameLines = splitName.length > 2 ? 2 : splitName.length; 
-                    const brandY = nameY + (nameLines * 3.5) + 2;
-                    doc.setFontStyle("normal"); 
-                    doc.setFontSize(7);
-                    doc.setTextColor(colorTextBrand);
-                    doc.text(mini.brand, textCenterX, brandY, { align: 'center' });
-
-                    // --- E. Desenhar Bloco "Tenho" (Box cinza na base) ---
-                    const tenhoBoxX = x + cardPadding;
-                    const tenhoBoxY = y + cardHeight - cardPadding - tenhoBoxHeight; 
-                    
-                    doc.setFillColor(imageContainerColor); 
-                    doc.setDrawColor(imageContainerColor);
-                    doc.roundedRect(
-                        tenhoBoxX, 
-                        tenhoBoxY, 
-                        imageContainerWidth, 
-                        tenhoBoxHeight, 
-                        cardCornerRadius - 1, 
-                        cardCornerRadius - 1, 
-                        'F'
-                    );
-
-                    // --- F. Desenhar Checkbox e Texto "Tenho" ---
-                    const checkboxSize = 3;
-                    const checkboxX = tenhoBoxX + 10; 
-                    const checkboxY = tenhoBoxY + (tenhoBoxHeight - checkboxSize) / 2;
-                    
-                    doc.setFillColor("#ffffff");
-                    doc.setDrawColor(isCollected ? colorCheckboxChecked : colorCheckboxBorder);
-                    doc.setLineWidth(0.5);
-                    doc.roundedRect(checkboxX, checkboxY, checkboxSize, checkboxSize, 0.5, 0.5, 'FD');
-
-                    const textX = checkboxX + checkboxSize + 2; 
-                    const textY = tenhoBoxY + tenhoBoxHeight / 2;
-                    doc.setFontStyle("bold"); 
-                    doc.setFontSize(8);
-                    doc.setTextColor(colorTextName);
-                    doc.text("Tenho", textX, textY, { baseline: 'middle' });
-
-                    if (isCollected) {
-                        doc.setDrawColor(colorCheckboxChecked);
-                        doc.setLineWidth(0.7);
-                        doc.line(checkboxX + 0.5, checkboxY + 1.5, checkboxX + 1.2, checkboxY + 2.2); // Perna 1
-                        doc.line(checkboxX + 1.2, checkboxY + 2.2, checkboxX + 2.5, checkboxY + 0.8); // Perna 2
-                    }
-
-                    // MUDANÇA: Corrigido de restoreGState para restoreGraphicsState
-                    doc.restoreGraphicsState();
-                }
-                
-                y += cardHeight + rowSpacing;
+        for (let i = 0; i < filteredMiniatures.length; i += columns) {
+            // Quebra de página
+            if (y + itemHeight > pageHeight - margin) { 
+                doc.addPage();
+                // Y na SEGUNDA PÁGINA (e seguintes): Reseta para a margem superior
+                y = margin; 
             }
 
-            doc.save("colecao_maisto_cards.pdf");
-            console.log("PDF salvo com sucesso!");
+            for (let j = 0; j < columns; j++) {
+                const index = i + j;
+                if (index >= filteredMiniatures.length) break;
 
-        } catch (error) {
-            console.error("Erro ao gerar o PDF:", error);
-            alert("Ocorreu um erro ao gerar o PDF. Verifique o console para mais detalhes.");
+                const mini = filteredMiniatures[index];
+                // 'x' agora marca o INÍCIO da célula da coluna
+                const x = margin + j * columnWidth + 1; 
+
+                // 1. Imagem
+                try {
+                    // MUDANÇA: Recebemos o objeto { dataUrl, width, height }
+                    const imgResult = await loadImageAsBase64(mini.image);
+                    
+                    if (imgResult && imgResult.dataUrl) {
+                        // MUDANÇA: Cálculo de proporção
+                        // Calculamos a largura que a imagem DEVE TER para ter 12 de altura
+                        const originalWidth = imgResult.width;
+                        const originalHeight = imgResult.height;
+                        const calculatedWidth = (originalWidth * imageHeight) / originalHeight;
+
+                        // MUDANÇA: Centralização da Imagem
+                        // Para centralizar, pegamos o centro da coluna (x + columnWidth / 2)
+                        // e subtraímos metade da largura calculada da imagem.
+                        const imageX = (x + (columnWidth / 2)) - (calculatedWidth / 2);
+
+                        // Usamos imageX, y, a largura calculada e a altura fixa
+                        doc.addImage(imgResult.dataUrl, 'JPEG', imageX, y, calculatedWidth, imageHeight);
+                    
+                    } else {
+                        // O placeholder continua usando 'x' e 'imageWidth' para preencher a coluna
+                        doc.setFillColor(230, 230, 230);
+                        doc.rect(x, y, imageWidth, imageHeight, 'F');
+                        doc.setTextColor(150);
+                        doc.text("No Img", x + imageWidth / 2, y + imageHeight / 2, { align: 'center', baseline: 'middle' });
+                        doc.setTextColor(100);
+                    }
+                } catch (error) {
+                    doc.setFillColor(230, 230, 230);
+                    doc.rect(x, y, imageWidth, imageHeight, 'F');
+                    doc.setTextColor(150);
+                    doc.text("Erro IMG", x + imageWidth / 2, y + imageHeight / 2, { align: 'center', baseline: 'middle' });
+                    doc.setTextColor(100);
+                }
+
+                // 2. Texto
+                const status = collection[mini.brand]?.[mini.id] ? "Tenho: SIM" : "Tenho: NAO";
+                const line1 = mini.name;
+                
+                // O texto é quebrado usando a largura da coluna (imageWidth)
+                const textLines = doc.splitTextToSize(line1, imageWidth);
+                
+                // MUDANÇA: Aumentei o espaçamento de +1 para +4
+                // Isso desce o texto para não colar na imagem.
+                const textY = y + imageHeight + 4; // Era +1
+                
+                // O texto é posicionado no início da coluna ('x')
+                doc.text(textLines, x, textY);
+                doc.text(status, x, textY + (textLines.length * 3.2)); 
+            }
+            
+            // Avança para a próxima linha vertical
+            y += itemHeight;
         }
-    };
 
+        doc.save("colecao_maisto.pdf");
+    };
    
     const BackgroundWrapper = ({ children }) => (
       <div className="min-h-screen bg-cover bg-center flex flex-col items-center justify-start text-white p-4"
@@ -1087,6 +1001,7 @@
 
 </body>
 </html>
+
 
 
 
