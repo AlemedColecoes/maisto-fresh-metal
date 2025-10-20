@@ -731,6 +731,7 @@
 
 
 // CORREÇÃO: Função exportToPDF com cálculo de proporção e espaçamento
+  // CORREÇÃO: Função exportToPDF com LARGURA FIXA e ALTURA PROPORCIONAL
     const exportToPDF = async () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -744,7 +745,7 @@
         doc.setFontSize(7);
         doc.setTextColor(100);
 
-        // MUDANÇA: Esta função agora retorna um objeto com { dataUrl, width, height }
+        // Função auxiliar (sem mudanças)
         const loadImageAsBase64 = (url) => {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -755,7 +756,6 @@
                     canvas.height = img.height;
                     const ctx = canvas.getContext("2d");
                     ctx.drawImage(img, 0, 0);
-                    // Resolve com um objeto contendo a URL e as dimensões originais
                     resolve({
                         dataUrl: canvas.toDataURL("image/jpeg"),
                         width: img.width,
@@ -764,100 +764,111 @@
                 };
                 img.onerror = (e) => {
                     console.error("Falha ao carregar imagem:", url, e);
-                    // Resolve com dataUrl nula em caso de erro
                     resolve({ dataUrl: null });
                 };
                 img.src = url;
             });
         };
 
-        // Y inicial na PRIMEIRA PÁGINA: 30
-        let y = 30; 
+        // --- Configurações do Layout ---
+        let y = 30; // Y inicial
         const pageHeight = 280; 
         const columns = 5; 
         const margin = 5; 
         const totalWidth = doc.internal.pageSize.getWidth() - 2 * margin; 
-        const columnWidth = totalWidth / columns; // Largura total da coluna
-        const imageWidth = columnWidth - 2; // Largura MÁXIMA para imagem/placeholder
-        const imageHeight = 12; // Altura FIXA da imagem (conforme solicitado)
+        const columnWidth = totalWidth / columns;
 
-        // SUGESTÃO/MUDANÇA: Aumentei o textSpace de 8 para 12.
-        // Isso dá mais espaço vertical para o nome e o status, evitando que
-        // o texto de uma linha sobreponha a imagem da linha de baixo.
-        const textSpace = 12; // Era 8
-        const spacing = 10; 
-        const itemHeight = imageHeight + textSpace + spacing; // Altura total do item
-        
+        // MUDANÇA: Esta é a LARGURA FIXA solicitada para todas as imagens.
+        const fixedImageWidth = columnWidth - 2; 
+
+        // MUDANÇA: Estas são as alturas *mínimas* para o layout de texto e espaçamento.
+        const textSpacePadding = 4; // Espaço entre imagem e texto
+        const minTextBlockHeight = 12; // Altura reservada para texto (nome + status)
+        const spacing = 10; // Espaço entre a linha de baixo
+        const placeholderHeight = 20; // Altura padrão para imagens quebradas
+
+        // Loop principal (processa LINHA por LINHA)
         for (let i = 0; i < filteredMiniatures.length; i += columns) {
-            // Quebra de página
-            if (y + itemHeight > pageHeight - margin) { 
-                doc.addPage();
-                // Y na SEGUNDA PÁGINA (e seguintes): Reseta para a margem superior
-                y = margin; 
-            }
+            
+            let maxCalculatedHeight = 0; // A altura da imagem mais alta nesta linha
+            let maxTextLines = 0; // O número de linhas do nome mais longo
+            const rowItems = []; // Array para guardar os dados medidos da linha
 
+            // --- PASSO 1: Medir todos os itens da linha ---
             for (let j = 0; j < columns; j++) {
                 const index = i + j;
                 if (index >= filteredMiniatures.length) break;
 
                 const mini = filteredMiniatures[index];
-                // 'x' agora marca o INÍCIO da célula da coluna
+                const imgResult = await loadImageAsBase64(mini.image);
+                
+                let calculatedHeight;
+                if (imgResult && imgResult.dataUrl) {
+                    // MUDANÇA: Calcula a altura proporcional com base na LARGURA FIXA
+                    calculatedHeight = (imgResult.height * fixedImageWidth) / imgResult.width;
+                } else {
+                    calculatedHeight = placeholderHeight; // Usa altura padrão para erro/placeholder
+                }
+                
+                // Armazena a maior altura de imagem da linha
+                if (calculatedHeight > maxCalculatedHeight) {
+                    maxCalculatedHeight = calculatedHeight;
+                }
+
+                // Mede o texto
+                const textLines = doc.splitTextToSize(mini.name, fixedImageWidth);
+                if (textLines.length > maxTextLines) {
+                    maxTextLines = textLines.length;
+                }
+                
+                // Guarda os dados para o Passo 4
+                rowItems.push({ mini, imgResult, calculatedHeight, textLines });
+            }
+
+            // --- PASSO 2: Calcular a altura total da linha ---
+            // Altura do bloco de texto = (Nº de linhas do nome * altura da linha) + (linha do status * altura)
+            const textBlockHeight = (maxTextLines * 3.2) + 3.2; // 3.2 é ~a altura de 1 linha de texto
+            
+            // Altura total da linha = (Img mais alta) + (Padding) + (Bloco de texto) + (Espaçamento)
+            const totalRowHeight = maxCalculatedHeight + textSpacePadding + textBlockHeight + spacing;
+
+            // --- PASSO 3: Verificar quebra de página (ANTES de desenhar) ---
+            if (y + totalRowHeight > pageHeight - margin) { 
+                doc.addPage();
+                y = margin; // Reseta Y para o topo da nova página
+            }
+
+            // --- PASSO 4: Desenhar os itens da linha (agora que sabemos o layout) ---
+            for (let j = 0; j < rowItems.length; j++) {
+                const item = rowItems[j];
                 const x = margin + j * columnWidth + 1; 
 
                 // 1. Imagem
-                try {
-                    // MUDANÇA: Recebemos o objeto { dataUrl, width, height }
-                    const imgResult = await loadImageAsBase64(mini.image);
-                    
-                    if (imgResult && imgResult.dataUrl) {
-                        // MUDANÇA: Cálculo de proporção
-                        // Calculamos a largura que a imagem DEVE TER para ter 12 de altura
-                        const originalWidth = imgResult.width;
-                        const originalHeight = imgResult.height;
-                        const calculatedWidth = (originalWidth * imageHeight) / originalHeight;
-
-                        // MUDANÇA: Centralização da Imagem
-                        // Para centralizar, pegamos o centro da coluna (x + columnWidth / 2)
-                        // e subtraímos metade da largura calculada da imagem.
-                        const imageX = (x + (columnWidth / 2)) - (calculatedWidth / 2);
-
-                        // Usamos imageX, y, a largura calculada e a altura fixa
-                        doc.addImage(imgResult.dataUrl, 'JPEG', imageX, y, calculatedWidth, imageHeight);
-                    
-                    } else {
-                        // O placeholder continua usando 'x' e 'imageWidth' para preencher a coluna
-                        doc.setFillColor(230, 230, 230);
-                        doc.rect(x, y, imageWidth, imageHeight, 'F');
-                        doc.setTextColor(150);
-                        doc.text("No Img", x + imageWidth / 2, y + imageHeight / 2, { align: 'center', baseline: 'middle' });
-                        doc.setTextColor(100);
-                    }
-                } catch (error) {
+                if (item.imgResult && item.imgResult.dataUrl) {
+                    // Desenha a imagem com LARGURA FIXA e ALTURA CALCULADA
+                    doc.addImage(item.imgResult.dataUrl, 'JPEG', x, y, fixedImageWidth, item.calculatedHeight);
+                } else {
+                    // Desenha o placeholder
                     doc.setFillColor(230, 230, 230);
-                    doc.rect(x, y, imageWidth, imageHeight, 'F');
+                    doc.rect(x, y, fixedImageWidth, placeholderHeight, 'F'); 
                     doc.setTextColor(150);
-                    doc.text("Erro IMG", x + imageWidth / 2, y + imageHeight / 2, { align: 'center', baseline: 'middle' });
+                    doc.text("No Img", x + fixedImageWidth / 2, y + placeholderHeight / 2, { align: 'center', baseline: 'middle' });
                     doc.setTextColor(100);
                 }
 
                 // 2. Texto
-                const status = collection[mini.brand]?.[mini.id] ? "Tenho: SIM" : "Tenho: NAO";
-                const line1 = mini.name;
+                const status = collection[item.mini.brand]?.[item.mini.id] ? "Tenho: SIM" : "Tenho: NAO";
                 
-                // O texto é quebrado usando a largura da coluna (imageWidth)
-                const textLines = doc.splitTextToSize(line1, imageWidth);
+                // MUDANÇA: O texto começa abaixo da IMAGEM MAIS ALTA (maxCalculatedHeight)
+                // Isso garante que todos os nomes de uma linha fiquem alinhados horizontalmente.
+                const textY = y + maxCalculatedHeight + textSpacePadding;
                 
-                // MUDANÇA: Aumentei o espaçamento de +1 para +4
-                // Isso desce o texto para não colar na imagem.
-                const textY = y + imageHeight + 4; // Era +1
-                
-                // O texto é posicionado no início da coluna ('x')
-                doc.text(textLines, x, textY);
-                doc.text(status, x, textY + (textLines.length * 3.2)); 
+                doc.text(item.textLines, x, textY);
+                doc.text(status, x, textY + (item.textLines.length * 3.2)); // Posiciona o status abaixo do nome
             }
             
-            // Avança para a próxima linha vertical
-            y += itemHeight;
+            // --- PASSO 5: Avançar Y para a próxima linha ---
+            y += totalRowHeight;
         }
 
         doc.save("colecao_maisto.pdf");
@@ -1002,6 +1013,7 @@
 
 </body>
 </html>
+
 
 
 
