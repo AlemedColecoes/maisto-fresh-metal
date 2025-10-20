@@ -730,109 +730,138 @@
 
 
 
-// ... (código anterior omitido por brevidade)
+// CORREÇÃO: Função exportToPDF com cálculo de proporção e espaçamento
+    const exportToPDF = async () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
 
-    // CORREÇÃO: Função exportToPDF mantida com Y inicial maior e Y subsequente menor
-    const exportToPDF = async () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        doc.setFontSize(18);
+        
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const titleHeight = 22; 
+        doc.text("Relatório da Coleção Maisto", pageWidth / 2, titleHeight, { align: 'center' });
 
-        doc.setFontSize(18);
-        
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const titleHeight = 22; 
-        doc.text("Relatório da Coleção Maisto", pageWidth / 2, titleHeight, { align: 'center' });
+        doc.setFontSize(7);
+        doc.setTextColor(100);
 
-        doc.setFontSize(7);
-        doc.setTextColor(100);
+        // MUDANÇA: Esta função agora retorna um objeto com { dataUrl, width, height }
+        const loadImageAsBase64 = (url) => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0);
+                    // Resolve com um objeto contendo a URL e as dimensões originais
+                    resolve({
+                        dataUrl: canvas.toDataURL("image/jpeg"),
+                        width: img.width,
+                        height: img.height
+                    });
+                };
+                img.onerror = (e) => {
+                    console.error("Falha ao carregar imagem:", url, e);
+                    // Resolve com dataUrl nula em caso de erro
+                    resolve({ dataUrl: null });
+                };
+                img.src = url;
+            });
+        };
 
-        const loadImageAsBase64 = (url) => {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = "Anonymous";
-                img.onload = () => {
-                    const canvas = document.createElement("canvas");
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext("2d");
-                    ctx.drawImage(img, 0, 0);
-                    resolve(canvas.toDataURL("image/jpeg"));
-                };
-                img.onerror = (e) => {
-                    console.error("Falha ao carregar imagem:", url, e);
-                    resolve(null);
-                };
-                img.src = url;
-            });
-        };
+        // Y inicial na PRIMEIRA PÁGINA: 30
+        let y = 30; 
+        const pageHeight = 280; 
+        const columns = 5; 
+        const margin = 5; 
+        const totalWidth = doc.internal.pageSize.getWidth() - 2 * margin; 
+        const columnWidth = totalWidth / columns; // Largura total da coluna
+        const imageWidth = columnWidth - 2; // Largura MÁXIMA para imagem/placeholder
+        const imageHeight = 12; // Altura FIXA da imagem (conforme solicitado)
 
-        // Y inicial na PRIMEIRA PÁGINA: 30 para não sobrepor o título (Y=22).
-        let y = 30; 
-        const pageHeight = 280; 
-        const columns = 5; 
-        const margin = 5; 
-        const totalWidth = doc.internal.pageSize.getWidth() - 2 * margin; 
-        const columnWidth = totalWidth / columns;
-        const imageWidth = columnWidth - 2; 
+        // SUGESTÃO/MUDANÇA: Aumentei o textSpace de 8 para 12.
+        // Isso dá mais espaço vertical para o nome e o status, evitando que
+        // o texto de uma linha sobreponha a imagem da linha de baixo.
+        const textSpace = 12; // Era 8
+        const spacing = 10; 
+        const itemHeight = imageHeight + textSpace + spacing; // Altura total do item
+        
+        for (let i = 0; i < filteredMiniatures.length; i += columns) {
+            // Quebra de página
+            if (y + itemHeight > pageHeight - margin) { 
+                doc.addPage();
+                // Y na SEGUNDA PÁGINA (e seguintes): Reseta para a margem superior
+                y = margin; 
+            }
 
-        // OTIMIZAÇÃO MÁXIMA PARA 1CM DE ESPAÇAMENTO:
-        const imageHeight = 12; 
-        const textSpace = 8; 
-        const spacing = 10; 
-        const itemHeight = imageHeight + textSpace + spacing;
-        
-        for (let i = 0; i < filteredMiniatures.length; i += columns) {
-            // Quebra de página: Verifica se a próxima linha ultrapassa o limite inferior.
-            if (y + itemHeight > pageHeight - margin) { 
-                doc.addPage();
-                // Y na SEGUNDA PÁGINA (e seguintes): Reseta para a margem superior (5) para maximizar.
-                y = margin; 
-            }
+            for (let j = 0; j < columns; j++) {
+                const index = i + j;
+                if (index >= filteredMiniatures.length) break;
 
-            for (let j = 0; j < columns; j++) {
-                const index = i + j;
-                if (index >= filteredMiniatures.length) break;
+                const mini = filteredMiniatures[index];
+                // 'x' agora marca o INÍCIO da célula da coluna
+                const x = margin + j * columnWidth + 1; 
 
-                const mini = filteredMiniatures[index];
-                const x = margin + j * columnWidth + 1; 
+                // 1. Imagem
+                try {
+                    // MUDANÇA: Recebemos o objeto { dataUrl, width, height }
+                    const imgResult = await loadImageAsBase64(mini.image);
+                    
+                    if (imgResult && imgResult.dataUrl) {
+                        // MUDANÇA: Cálculo de proporção
+                        // Calculamos a largura que a imagem DEVE TER para ter 12 de altura
+                        const originalWidth = imgResult.width;
+                        const originalHeight = imgResult.height;
+                        const calculatedWidth = (originalWidth * imageHeight) / originalHeight;
 
-                // 1. Imagem
-                try {
-                    const imgData = await loadImageAsBase64(mini.image);
-                    if (imgData) {
-                        doc.addImage(imgData, 'JPEG', x, y, imageWidth, imageHeight);
-                    } else {
-                        doc.setFillColor(230, 230, 230);
-                        doc.rect(x, y, imageWidth, imageHeight, 'F');
-                        doc.setTextColor(150);
-                        doc.text("No Img", x + imageWidth / 2, y + imageHeight / 2, { align: 'center', baseline: 'middle' });
-                        doc.setTextColor(100);
-                    }
-                } catch (error) {
-                    doc.setFillColor(230, 230, 230);
-                    doc.rect(x, y, imageWidth, imageHeight, 'F');
-                    doc.setTextColor(150);
-                    doc.text("Erro IMG", x + imageWidth / 2, y + imageHeight / 2, { align: 'center', baseline: 'middle' });
-                    doc.setTextColor(100);
-                }
+                        // MUDANÇA: Centralização da Imagem
+                        // Para centralizar, pegamos o centro da coluna (x + columnWidth / 2)
+                        // e subtraímos metade da largura calculada da imagem.
+                        const imageX = (x + (columnWidth / 2)) - (calculatedWidth / 2);
 
-                // 2. Texto
-                const status = collection[mini.brand]?.[mini.id] ? "Tenho: SIM" : "Tenho: NAO";
-                const line1 = mini.name;
-                
-                // Quebra de linha
-                const textLines = doc.splitTextToSize(line1, imageWidth);
-                
-                doc.text(textLines, x, y + imageHeight + 1);
-                doc.text(status, x, y + imageHeight + 1 + (textLines.length * 3.2)); 
-            }
-            
-            // Avança para a próxima linha vertical (adiciona o itemHeight total)
-            y += itemHeight;
-        }
+                        // Usamos imageX, y, a largura calculada e a altura fixa
+                        doc.addImage(imgResult.dataUrl, 'JPEG', imageX, y, calculatedWidth, imageHeight);
+                    
+                    } else {
+                        // O placeholder continua usando 'x' e 'imageWidth' para preencher a coluna
+                        doc.setFillColor(230, 230, 230);
+                        doc.rect(x, y, imageWidth, imageHeight, 'F');
+                        doc.setTextColor(150);
+                        doc.text("No Img", x + imageWidth / 2, y + imageHeight / 2, { align: 'center', baseline: 'middle' });
+                        doc.setTextColor(100);
+                    }
+                } catch (error) {
+                    doc.setFillColor(230, 230, 230);
+                    doc.rect(x, y, imageWidth, imageHeight, 'F');
+                    doc.setTextColor(150);
+                    doc.text("Erro IMG", x + imageWidth / 2, y + imageHeight / 2, { align: 'center', baseline: 'middle' });
+                    doc.setTextColor(100);
+                }
 
-        doc.save("colecao_maisto.pdf");
-    };
+                // 2. Texto
+                const status = collection[mini.brand]?.[mini.id] ? "Tenho: SIM" : "Tenho: NAO";
+                const line1 = mini.name;
+                
+                // O texto é quebrado usando a largura da coluna (imageWidth)
+                const textLines = doc.splitTextToSize(line1, imageWidth);
+                
+                // MUDANÇA: Aumentei o espaçamento de +1 para +4
+                // Isso desce o texto para não colar na imagem.
+                const textY = y + imageHeight + 4; // Era +1
+                
+                // O texto é posicionado no início da coluna ('x')
+                doc.text(textLines, x, textY);
+                doc.text(status, x, textY + (textLines.length * 3.2)); 
+            }
+            
+            // Avança para a próxima linha vertical
+            y += itemHeight;
+        }
+
+        doc.save("colecao_maisto.pdf");
+    };
 
    
     const BackgroundWrapper = ({ children }) => (
@@ -973,6 +1002,7 @@
 
 </body>
 </html>
+
 
 
 
