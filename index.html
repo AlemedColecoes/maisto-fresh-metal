@@ -732,7 +732,13 @@
 
 // CORREÇÃO: Função exportToPDF com cálculo de proporção e espaçamento
 // CORREÇÃO: Função exportToPDF que REPLICA o layout do Card do HTML
+// CORREÇÃO: Função exportToPDF com correção de FONT STYLE
     const exportToPDF = async () => {
+        // --- INÍCIO: Verificação de Segurança ---
+        // Adiciona um log para sabermos que a função foi chamada
+        console.log("Iniciando exportação para PDF..."); 
+        // --- FIM: Verificação de Segurança ---
+
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
@@ -780,7 +786,6 @@
         const cardWidth = (usableWidth - (columns - 1) * columnSpacing) / columns;
 
         // --- Definição da Estrutura INTERNA do Card (em mm) ---
-        // (Baseado no seu HTML: p-3, h-[120px], etc.)
         const cardPadding = 3;
         const cardCornerRadius = 3;
         
@@ -793,7 +798,6 @@
         const tenhoBoxHeight = 8;
         
         // 3. Altura total FIXA do Card
-        // (Isso garante que todos os cards na grade tenham a mesma altura)
         const cardHeight = cardPadding + imageContainerHeight + 18 + tenhoBoxHeight + cardPadding; // Total ~62mm
 
         // Cores
@@ -806,159 +810,164 @@
 
         
         // --- Loop Principal ---
-        for (let i = 0; i < filteredMiniatures.length; i += columns) { // Itera por LINHA
-            
-            // 1. Verificar Quebra de Página (antes de desenhar a linha)
-            if (y + cardHeight > pageHeight - margin) { 
-                doc.addPage();
-                y = margin; // Reseta Y para o topo
-            }
-
-            // 2. Desenhar cada Card na Linha
-            for (let j = 0; j < columns; j++) { // Itera por COLUNA
-                const index = i + j;
-                if (index >= filteredMiniatures.length) break;
-
-                const mini = filteredMiniatures[index];
-                const isCollected = !!collection[mini.brand]?.[mini.id];
-
-                // Posição (x, y) do card atual
-                const x = margin + j * (cardWidth + columnSpacing);
-
-                // Salva o estado atual (para não vazar cores/estilos)
-                doc.saveGState();
-
-                // --- A. Desenhar Card (Fundo Branco e Borda) ---
-                doc.setFillColor("#ffffff"); // bg-white
-                if (isCollected) {
-                    doc.setDrawColor(colorBorderCollected);
-                    doc.setLineWidth(1.5); // Borda grossa (4px)
-                } else {
-                    doc.setDrawColor(colorBorderDefault);
-                    doc.setLineWidth(0.5); // Borda fina
+        try { // Adiciona um try/catch para capturar qualquer erro
+            for (let i = 0; i < filteredMiniatures.length; i += columns) { // Itera por LINHA
+                
+                // 1. Verificar Quebra de Página (antes de desenhar a linha)
+                if (y + cardHeight > pageHeight - margin) { 
+                    doc.addPage();
+                    y = margin; // Reseta Y para o topo
                 }
-                // 'FD' = Fill and Stroke (Preencher e Contornar)
-                doc.roundedRect(x, y, cardWidth, cardHeight, cardCornerRadius, cardCornerRadius, 'FD'); 
 
-                // --- B. Desenhar Container da Imagem (Box Cinza) ---
-                const imgContainerX = x + cardPadding;
-                const imgContainerY = y + cardPadding;
-                doc.setFillColor(imageContainerColor);
-                doc.setDrawColor(imageContainerColor); // Sem borda
-                doc.roundedRect(
-                    imgContainerX, 
-                    imgContainerY, 
-                    imageContainerWidth, 
-                    imageContainerHeight, 
-                    cardCornerRadius - 1, // Raio menor
-                    cardCornerRadius - 1,
-                    'F' // Apenas Fill
-                );
+                // 2. Desenhar cada Card na Linha
+                for (let j = 0; j < columns; j++) { // Itera por COLUNA
+                    const index = i + j;
+                    if (index >= filteredMiniatures.length) break;
 
-                // --- C. Carregar e Desenhar Imagem (com 'object-contain') ---
-                const imgResult = await loadImageAsBase64(mini.image);
-                if (imgResult && imgResult.dataUrl) {
-                    // Lógica 'object-contain'
-                    const w = imgResult.width;
-                    const h = imgResult.height;
-                    const containerW = imageContainerWidth;
-                    const containerH = imageContainerHeight;
-                    const imgRatio = w / h;
-                    const containerRatio = containerW / containerH;
+                    const mini = filteredMiniatures[index];
+                    const isCollected = !!collection[mini.brand]?.[mini.id];
 
-                    let finalW, finalH, imgX, imgY;
+                    // Posição (x, y) do card atual
+                    const x = margin + j * (cardWidth + columnSpacing);
 
-                    if (imgRatio > containerRatio) { // Imagem mais larga que o container
-                        finalW = containerW;
-                        finalH = finalW / imgRatio;
-                    } else { // Imagem mais alta (ou igual)
-                        finalH = containerH;
-                        finalW = finalH * imgRatio;
+                    doc.saveGState();
+
+                    // --- A. Desenhar Card (Fundo Branco e Borda) ---
+                    doc.setFillColor("#ffffff"); // bg-white
+                    if (isCollected) {
+                        doc.setDrawColor(colorBorderCollected);
+                        doc.setLineWidth(1.5); // Borda grossa (4px)
+                    } else {
+                        doc.setDrawColor(colorBorderDefault);
+                        doc.setLineWidth(0.5); // Borda fina
+                    }
+                    doc.roundedRect(x, y, cardWidth, cardHeight, cardCornerRadius, cardCornerRadius, 'FD'); 
+
+                    // --- B. Desenhar Container da Imagem (Box Cinza) ---
+                    const imgContainerX = x + cardPadding;
+                    const imgContainerY = y + cardPadding;
+                    doc.setFillColor(imageContainerColor);
+                    doc.setDrawColor(imageContainerColor); // Sem borda
+                    doc.roundedRect(
+                        imgContainerX, 
+                        imgContainerY, 
+                        imageContainerWidth, 
+                        imageContainerHeight, 
+                        cardCornerRadius - 1, // Raio menor
+                        cardCornerRadius - 1,
+                        'F' // Apenas Fill
+                    );
+
+                    // --- C. Carregar e Desenhar Imagem (com 'object-contain') ---
+                    const imgResult = await loadImageAsBase64(mini.image);
+                    if (imgResult && imgResult.dataUrl) {
+                        // Lógica 'object-contain'
+                        const w = imgResult.width;
+                        const h = imgResult.height;
+                        const containerW = imageContainerWidth;
+                        const containerH = imageContainerHeight;
+                        const imgRatio = w / h;
+                        const containerRatio = containerW / containerH;
+
+                        let finalW, finalH, imgX, imgY;
+
+                        if (imgRatio > containerRatio) { // Imagem mais larga
+                            finalW = containerW;
+                            finalH = finalW / imgRatio;
+                        } else { // Imagem mais alta
+                            finalH = containerH;
+                            finalW = finalH * imgRatio;
+                        }
+
+                        // Centralizar imagem
+                        imgX = imgContainerX + (containerW - finalW) / 2;
+                        imgY = imgContainerY + (containerH - finalH) / 2;
+                        
+                        doc.addImage(imgResult.dataUrl, 'JPEG', imgX, imgY, finalW, finalH);
+                    } else {
+                        doc.setFontSize(8);
+                        doc.setTextColor(colorTextBrand);
+                        doc.text("Erro Img", imgContainerX + imageContainerWidth / 2, imgContainerY + imageContainerHeight / 2, { align: 'center', baseline: 'middle' });
                     }
 
-                    // Centralizar imagem dentro do container
-                    imgX = imgContainerX + (containerW - finalW) / 2;
-                    imgY = imgContainerY + (containerH - finalH) / 2;
-                    
-                    doc.addImage(imgResult.dataUrl, 'JPEG', imgX, imgY, finalW, finalH);
-                } else {
-                    // Texto "No Img" se falhar
+                    // --- D. Desenhar Textos (Nome e Marca) ---
+                    const textCenterX = x + cardWidth / 2;
+
+                    // Nome
+                    // MUDANÇA: Substituído setFont por setFontStyle
+                    doc.setFontStyle("bold"); 
                     doc.setFontSize(8);
+                    doc.setTextColor(colorTextName);
+                    const nameY = imgContainerY + imageContainerHeight + 6;
+                    const splitName = doc.splitTextToSize(mini.name, imageContainerWidth - 2); 
+                    doc.text(splitName, textCenterX, nameY, { align: 'center' });
+                    
+                    // Marca
+                    const nameLines = splitName.length > 2 ? 2 : splitName.length; 
+                    const brandY = nameY + (nameLines * 3.5) + 2;
+                    // MUDANÇA: Substituído setFont por setFontStyle
+                    doc.setFontStyle("normal"); 
+                    doc.setFontSize(7);
                     doc.setTextColor(colorTextBrand);
-                    doc.text("Erro Img", imgContainerX + imageContainerWidth / 2, imgContainerY + imageContainerHeight / 2, { align: 'center', baseline: 'middle' });
+                    doc.text(mini.brand, textCenterX, brandY, { align: 'center' });
+
+                    // --- E. Desenhar Bloco "Tenho" (Box cinza na base) ---
+                    const tenhoBoxX = x + cardPadding;
+                    const tenhoBoxY = y + cardHeight - cardPadding - tenhoBoxHeight; 
+                    
+                    doc.setFillColor(imageContainerColor); // bg-gray-100
+                    doc.setDrawColor(imageContainerColor);
+                    doc.roundedRect(
+                        tenhoBoxX, 
+                        tenhoBoxY, 
+                        imageContainerWidth, 
+                        tenhoBoxHeight, 
+                        cardCornerRadius - 1, 
+                        cardCornerRadius - 1, 
+                        'F'
+                    );
+
+                    // --- F. Desenhar Checkbox e Texto "Tenho" ---
+                    const checkboxSize = 3;
+                    const checkboxX = tenhoBoxX + 10; 
+                    const checkboxY = tenhoBoxY + (tenhoBoxHeight - checkboxSize) / 2;
+                    
+                    doc.setFillColor("#ffffff");
+                    doc.setDrawColor(isCollected ? colorCheckboxChecked : colorCheckboxBorder);
+                    doc.setLineWidth(0.5);
+                    doc.roundedRect(checkboxX, checkboxY, checkboxSize, checkboxSize, 0.5, 0.5, 'FD');
+
+                    const textX = checkboxX + checkboxSize + 2; 
+                    const textY = tenhoBoxY + tenhoBoxHeight / 2;
+                    // MUDANÇA: Substituído setFont por setFontStyle
+                    doc.setFontStyle("bold"); 
+                    doc.setFontSize(8);
+                    doc.setTextColor(colorTextName);
+                    doc.text("Tenho", textX, textY, { baseline: 'middle' });
+
+                    if (isCollected) {
+                        doc.setDrawColor(colorCheckboxChecked);
+                        doc.setLineWidth(0.7);
+                        doc.line(checkboxX + 0.5, checkboxY + 1.5, checkboxX + 1.2, checkboxY + 2.2); // Perna 1
+                        doc.line(checkboxX + 1.2, checkboxY + 2.2, checkboxX + 2.5, checkboxY + 0.8); // Perna 2
+                    }
+
+                    doc.restoreGState();
                 }
-
-                // --- D. Desenhar Textos (Nome e Marca) ---
-                const textCenterX = x + cardWidth / 2;
-
-                // Nome
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(8);
-                doc.setTextColor(colorTextName);
-                const nameY = imgContainerY + imageContainerHeight + 6;
-                const splitName = doc.splitTextToSize(mini.name, imageContainerWidth - 2); // Quebra de linha
-                doc.text(splitName, textCenterX, nameY, { align: 'center' });
                 
-                // Marca
-                const nameLines = splitName.length > 2 ? 2 : splitName.length; // Limita a 2 linhas
-                const brandY = nameY + (nameLines * 3.5) + 2; // Posição Y da marca
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(7);
-                doc.setTextColor(colorTextBrand);
-                doc.text(mini.brand, textCenterX, brandY, { align: 'center' });
-
-                // --- E. Desenhar Bloco "Tenho" (Box cinza na base) ---
-                const tenhoBoxX = x + cardPadding;
-                const tenhoBoxY = y + cardHeight - cardPadding - tenhoBoxHeight; // Alinha na base
-                
-                doc.setFillColor(imageContainerColor); // bg-gray-100
-                doc.setDrawColor(imageContainerColor);
-                doc.roundedRect(
-                    tenhoBoxX, 
-                    tenhoBoxY, 
-                    imageContainerWidth, 
-                    tenhoBoxHeight, 
-                    cardCornerRadius - 1, 
-                    cardCornerRadius - 1, 
-                    'F'
-                );
-
-                // --- F. Desenhar Checkbox e Texto "Tenho" ---
-                const checkboxSize = 3;
-                const checkboxX = tenhoBoxX + 10; // Padding da esquerda
-                const checkboxY = tenhoBoxY + (tenhoBoxHeight - checkboxSize) / 2; // Centralizado
-                
-                // Caixa do checkbox
-                doc.setFillColor("#ffffff");
-                doc.setDrawColor(isCollected ? colorCheckboxChecked : colorCheckboxBorder);
-                doc.setLineWidth(0.5);
-                doc.roundedRect(checkboxX, checkboxY, checkboxSize, checkboxSize, 0.5, 0.5, 'FD');
-
-                // Texto "Tenho"
-                const textX = checkboxX + checkboxSize + 2; // 2mm à direita do checkbox
-                const textY = tenhoBoxY + tenhoBoxHeight / 2;
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(8);
-                doc.setTextColor(colorTextName);
-                doc.text("Tenho", textX, textY, { baseline: 'middle' });
-
-                // Desenha o "check" (V) se coletado
-                if (isCollected) {
-                    doc.setDrawColor(colorCheckboxChecked);
-                    doc.setLineWidth(0.7);
-                    doc.line(checkboxX + 0.5, checkboxY + 1.5, checkboxX + 1.2, checkboxY + 2.2); // Perna 1
-                    doc.line(checkboxX + 1.2, checkboxY + 2.2, checkboxX + 2.5, checkboxY + 0.8); // Perna 2
-                }
-
-                // Restaura o estado (limpa estilos)
-                doc.restoreGState();
+                // 3. Avançar o Y para a próxima linha
+                y += cardHeight + rowSpacing;
             }
-            
-            // 3. Avançar o Y para a próxima linha
-            y += cardHeight + rowSpacing;
-        }
 
-        doc.save("colecao_maisto_cards.pdf");
+            // Se tudo correu bem, salva o arquivo
+            doc.save("colecao_maisto_cards.pdf");
+            console.log("PDF salvo com sucesso!");
+
+        } catch (error) {
+            // Se der qualquer erro durante o loop, exibe no console
+            console.error("Erro ao gerar o PDF:", error);
+            alert("Ocorreu um erro ao gerar o PDF. Verifique o console para mais detalhes.");
+        }
     };
 
    
@@ -1100,6 +1109,7 @@
 
 </body>
 </html>
+
 
 
 
