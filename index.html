@@ -730,6 +730,8 @@
 
 
 
+// ... (código anterior omitido por brevidade)
+
 // CORREÇÃO: Função exportToPDF com cálculo de proporção e espaçamento
     const exportToPDF = async () => {
         const { jsPDF } = window.jspdf;
@@ -862,6 +864,7 @@
 
         doc.save("colecao_maisto.pdf");
     };
+
    
     const BackgroundWrapper = ({ children }) => (
       <div className="min-h-screen bg-cover bg-center flex flex-col items-center justify-start text-white p-4"
@@ -1001,13 +1004,6 @@
 
 </body>
 </html>
-
-
-
-
-
-
-
 
 
 
