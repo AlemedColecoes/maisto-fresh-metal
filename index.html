@@ -731,21 +731,16 @@
 
 
 // CORREÇÃO: Função exportToPDF com cálculo de proporção e espaçamento
-  // CORREÇÃO: Função exportToPDF com LARGURA FIXA e ALTURA PROPORCIONAL
+// CORREÇÃO: Função exportToPDF que REPLICA o layout do Card do HTML
     const exportToPDF = async () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
         doc.setFontSize(18);
-        
         const pageWidth = doc.internal.pageSize.getWidth();
-        const titleHeight = 22; 
-        doc.text("Relatório da Coleção Maisto", pageWidth / 2, titleHeight, { align: 'center' });
+        doc.text("Relatório da Coleção Maisto", pageWidth / 2, 22, { align: 'center' });
 
-        doc.setFontSize(7);
-        doc.setTextColor(100);
-
-        // Função auxiliar (sem mudanças)
+        // Função auxiliar para carregar imagens
         const loadImageAsBase64 = (url) => {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -764,114 +759,206 @@
                 };
                 img.onerror = (e) => {
                     console.error("Falha ao carregar imagem:", url, e);
-                    resolve({ dataUrl: null });
+                    resolve({ dataUrl: null, width: 0, height: 0 });
                 };
                 img.src = url;
             });
         };
 
         // --- Configurações do Layout ---
-        let y = 30; // Y inicial
+        let y = 30; // Y inicial (abaixo do título)
         const pageHeight = 280; 
+        const margin = 10; // Margem da página
         const columns = 5; 
-        const margin = 5; 
-        const totalWidth = doc.internal.pageSize.getWidth() - 2 * margin; 
-        const columnWidth = totalWidth / columns;
+        
+        // Espaçamento da grade
+        const columnSpacing = 4;
+        const rowSpacing = 4;
+        
+        // Cálculo da largura do card
+        const usableWidth = doc.internal.pageSize.getWidth() - 2 * margin;
+        const cardWidth = (usableWidth - (columns - 1) * columnSpacing) / columns;
 
-        // MUDANÇA: Esta é a LARGURA FIXA solicitada para todas as imagens.
-        const fixedImageWidth = columnWidth - 2; 
+        // --- Definição da Estrutura INTERNA do Card (em mm) ---
+        // (Baseado no seu HTML: p-3, h-[120px], etc.)
+        const cardPadding = 3;
+        const cardCornerRadius = 3;
+        
+        // 1. Container da Imagem (o box cinza)
+        const imageContainerWidth = cardWidth - 2 * cardPadding;
+        const imageContainerHeight = 30; // Aproximação de h-[120px]
+        const imageContainerColor = "#f3f4f6"; // bg-gray-200
 
-        // MUDANÇA: Estas são as alturas *mínimas* para o layout de texto e espaçamento.
-        const textSpacePadding = 4; // Espaço entre imagem e texto
-        const minTextBlockHeight = 12; // Altura reservada para texto (nome + status)
-        const spacing = 10; // Espaço entre a linha de baixo
-        const placeholderHeight = 20; // Altura padrão para imagens quebradas
+        // 2. Bloco "Tenho" (o box cinza na base)
+        const tenhoBoxHeight = 8;
+        
+        // 3. Altura total FIXA do Card
+        // (Isso garante que todos os cards na grade tenham a mesma altura)
+        const cardHeight = cardPadding + imageContainerHeight + 18 + tenhoBoxHeight + cardPadding; // Total ~62mm
 
-        // Loop principal (processa LINHA por LINHA)
-        for (let i = 0; i < filteredMiniatures.length; i += columns) {
+        // Cores
+        const colorBorderCollected = "#10b981";
+        const colorBorderDefault = "#e5e7eb";
+        const colorTextName = "#1f2937";
+        const colorTextBrand = "#6b7280";
+        const colorCheckboxBorder = "#9ca3af";
+        const colorCheckboxChecked = "#059669"; // Verde do check
+
+        
+        // --- Loop Principal ---
+        for (let i = 0; i < filteredMiniatures.length; i += columns) { // Itera por LINHA
             
-            let maxCalculatedHeight = 0; // A altura da imagem mais alta nesta linha
-            let maxTextLines = 0; // O número de linhas do nome mais longo
-            const rowItems = []; // Array para guardar os dados medidos da linha
+            // 1. Verificar Quebra de Página (antes de desenhar a linha)
+            if (y + cardHeight > pageHeight - margin) { 
+                doc.addPage();
+                y = margin; // Reseta Y para o topo
+            }
 
-            // --- PASSO 1: Medir todos os itens da linha ---
-            for (let j = 0; j < columns; j++) {
+            // 2. Desenhar cada Card na Linha
+            for (let j = 0; j < columns; j++) { // Itera por COLUNA
                 const index = i + j;
                 if (index >= filteredMiniatures.length) break;
 
                 const mini = filteredMiniatures[index];
+                const isCollected = !!collection[mini.brand]?.[mini.id];
+
+                // Posição (x, y) do card atual
+                const x = margin + j * (cardWidth + columnSpacing);
+
+                // Salva o estado atual (para não vazar cores/estilos)
+                doc.saveGState();
+
+                // --- A. Desenhar Card (Fundo Branco e Borda) ---
+                doc.setFillColor("#ffffff"); // bg-white
+                if (isCollected) {
+                    doc.setDrawColor(colorBorderCollected);
+                    doc.setLineWidth(1.5); // Borda grossa (4px)
+                } else {
+                    doc.setDrawColor(colorBorderDefault);
+                    doc.setLineWidth(0.5); // Borda fina
+                }
+                // 'FD' = Fill and Stroke (Preencher e Contornar)
+                doc.roundedRect(x, y, cardWidth, cardHeight, cardCornerRadius, cardCornerRadius, 'FD'); 
+
+                // --- B. Desenhar Container da Imagem (Box Cinza) ---
+                const imgContainerX = x + cardPadding;
+                const imgContainerY = y + cardPadding;
+                doc.setFillColor(imageContainerColor);
+                doc.setDrawColor(imageContainerColor); // Sem borda
+                doc.roundedRect(
+                    imgContainerX, 
+                    imgContainerY, 
+                    imageContainerWidth, 
+                    imageContainerHeight, 
+                    cardCornerRadius - 1, // Raio menor
+                    cardCornerRadius - 1,
+                    'F' // Apenas Fill
+                );
+
+                // --- C. Carregar e Desenhar Imagem (com 'object-contain') ---
                 const imgResult = await loadImageAsBase64(mini.image);
-                
-                let calculatedHeight;
                 if (imgResult && imgResult.dataUrl) {
-                    // MUDANÇA: Calcula a altura proporcional com base na LARGURA FIXA
-                    calculatedHeight = (imgResult.height * fixedImageWidth) / imgResult.width;
+                    // Lógica 'object-contain'
+                    const w = imgResult.width;
+                    const h = imgResult.height;
+                    const containerW = imageContainerWidth;
+                    const containerH = imageContainerHeight;
+                    const imgRatio = w / h;
+                    const containerRatio = containerW / containerH;
+
+                    let finalW, finalH, imgX, imgY;
+
+                    if (imgRatio > containerRatio) { // Imagem mais larga que o container
+                        finalW = containerW;
+                        finalH = finalW / imgRatio;
+                    } else { // Imagem mais alta (ou igual)
+                        finalH = containerH;
+                        finalW = finalH * imgRatio;
+                    }
+
+                    // Centralizar imagem dentro do container
+                    imgX = imgContainerX + (containerW - finalW) / 2;
+                    imgY = imgContainerY + (containerH - finalH) / 2;
+                    
+                    doc.addImage(imgResult.dataUrl, 'JPEG', imgX, imgY, finalW, finalH);
                 } else {
-                    calculatedHeight = placeholderHeight; // Usa altura padrão para erro/placeholder
-                }
-                
-                // Armazena a maior altura de imagem da linha
-                if (calculatedHeight > maxCalculatedHeight) {
-                    maxCalculatedHeight = calculatedHeight;
+                    // Texto "No Img" se falhar
+                    doc.setFontSize(8);
+                    doc.setTextColor(colorTextBrand);
+                    doc.text("Erro Img", imgContainerX + imageContainerWidth / 2, imgContainerY + imageContainerHeight / 2, { align: 'center', baseline: 'middle' });
                 }
 
-                // Mede o texto
-                const textLines = doc.splitTextToSize(mini.name, fixedImageWidth);
-                if (textLines.length > maxTextLines) {
-                    maxTextLines = textLines.length;
-                }
+                // --- D. Desenhar Textos (Nome e Marca) ---
+                const textCenterX = x + cardWidth / 2;
+
+                // Nome
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(8);
+                doc.setTextColor(colorTextName);
+                const nameY = imgContainerY + imageContainerHeight + 6;
+                const splitName = doc.splitTextToSize(mini.name, imageContainerWidth - 2); // Quebra de linha
+                doc.text(splitName, textCenterX, nameY, { align: 'center' });
                 
-                // Guarda os dados para o Passo 4
-                rowItems.push({ mini, imgResult, calculatedHeight, textLines });
+                // Marca
+                const nameLines = splitName.length > 2 ? 2 : splitName.length; // Limita a 2 linhas
+                const brandY = nameY + (nameLines * 3.5) + 2; // Posição Y da marca
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(7);
+                doc.setTextColor(colorTextBrand);
+                doc.text(mini.brand, textCenterX, brandY, { align: 'center' });
+
+                // --- E. Desenhar Bloco "Tenho" (Box cinza na base) ---
+                const tenhoBoxX = x + cardPadding;
+                const tenhoBoxY = y + cardHeight - cardPadding - tenhoBoxHeight; // Alinha na base
+                
+                doc.setFillColor(imageContainerColor); // bg-gray-100
+                doc.setDrawColor(imageContainerColor);
+                doc.roundedRect(
+                    tenhoBoxX, 
+                    tenhoBoxY, 
+                    imageContainerWidth, 
+                    tenhoBoxHeight, 
+                    cardCornerRadius - 1, 
+                    cardCornerRadius - 1, 
+                    'F'
+                );
+
+                // --- F. Desenhar Checkbox e Texto "Tenho" ---
+                const checkboxSize = 3;
+                const checkboxX = tenhoBoxX + 10; // Padding da esquerda
+                const checkboxY = tenhoBoxY + (tenhoBoxHeight - checkboxSize) / 2; // Centralizado
+                
+                // Caixa do checkbox
+                doc.setFillColor("#ffffff");
+                doc.setDrawColor(isCollected ? colorCheckboxChecked : colorCheckboxBorder);
+                doc.setLineWidth(0.5);
+                doc.roundedRect(checkboxX, checkboxY, checkboxSize, checkboxSize, 0.5, 0.5, 'FD');
+
+                // Texto "Tenho"
+                const textX = checkboxX + checkboxSize + 2; // 2mm à direita do checkbox
+                const textY = tenhoBoxY + tenhoBoxHeight / 2;
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(8);
+                doc.setTextColor(colorTextName);
+                doc.text("Tenho", textX, textY, { baseline: 'middle' });
+
+                // Desenha o "check" (V) se coletado
+                if (isCollected) {
+                    doc.setDrawColor(colorCheckboxChecked);
+                    doc.setLineWidth(0.7);
+                    doc.line(checkboxX + 0.5, checkboxY + 1.5, checkboxX + 1.2, checkboxY + 2.2); // Perna 1
+                    doc.line(checkboxX + 1.2, checkboxY + 2.2, checkboxX + 2.5, checkboxY + 0.8); // Perna 2
+                }
+
+                // Restaura o estado (limpa estilos)
+                doc.restoreGState();
             }
-
-            // --- PASSO 2: Calcular a altura total da linha ---
-            // Altura do bloco de texto = (Nº de linhas do nome * altura da linha) + (linha do status * altura)
-            const textBlockHeight = (maxTextLines * 3.2) + 3.2; // 3.2 é ~a altura de 1 linha de texto
             
-            // Altura total da linha = (Img mais alta) + (Padding) + (Bloco de texto) + (Espaçamento)
-            const totalRowHeight = maxCalculatedHeight + textSpacePadding + textBlockHeight + spacing;
-
-            // --- PASSO 3: Verificar quebra de página (ANTES de desenhar) ---
-            if (y + totalRowHeight > pageHeight - margin) { 
-                doc.addPage();
-                y = margin; // Reseta Y para o topo da nova página
-            }
-
-            // --- PASSO 4: Desenhar os itens da linha (agora que sabemos o layout) ---
-            for (let j = 0; j < rowItems.length; j++) {
-                const item = rowItems[j];
-                const x = margin + j * columnWidth + 1; 
-
-                // 1. Imagem
-                if (item.imgResult && item.imgResult.dataUrl) {
-                    // Desenha a imagem com LARGURA FIXA e ALTURA CALCULADA
-                    doc.addImage(item.imgResult.dataUrl, 'JPEG', x, y, fixedImageWidth, item.calculatedHeight);
-                } else {
-                    // Desenha o placeholder
-                    doc.setFillColor(230, 230, 230);
-                    doc.rect(x, y, fixedImageWidth, placeholderHeight, 'F'); 
-                    doc.setTextColor(150);
-                    doc.text("No Img", x + fixedImageWidth / 2, y + placeholderHeight / 2, { align: 'center', baseline: 'middle' });
-                    doc.setTextColor(100);
-                }
-
-                // 2. Texto
-                const status = collection[item.mini.brand]?.[item.mini.id] ? "Tenho: SIM" : "Tenho: NAO";
-                
-                // MUDANÇA: O texto começa abaixo da IMAGEM MAIS ALTA (maxCalculatedHeight)
-                // Isso garante que todos os nomes de uma linha fiquem alinhados horizontalmente.
-                const textY = y + maxCalculatedHeight + textSpacePadding;
-                
-                doc.text(item.textLines, x, textY);
-                doc.text(status, x, textY + (item.textLines.length * 3.2)); // Posiciona o status abaixo do nome
-            }
-            
-            // --- PASSO 5: Avançar Y para a próxima linha ---
-            y += totalRowHeight;
+            // 3. Avançar o Y para a próxima linha
+            y += cardHeight + rowSpacing;
         }
 
-        doc.save("colecao_maisto.pdf");
+        doc.save("colecao_maisto_cards.pdf");
     };
 
    
@@ -1013,6 +1100,7 @@
 
 </body>
 </html>
+
 
 
 
