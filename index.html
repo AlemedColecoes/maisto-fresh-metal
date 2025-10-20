@@ -733,11 +733,9 @@
 // CORREÇÃO: Função exportToPDF com cálculo de proporção e espaçamento
 // CORREÇÃO: Função exportToPDF que REPLICA o layout do Card do HTML
 // CORREÇÃO: Função exportToPDF com correção de FONT STYLE
+// CORREÇÃO: Função exportToPDF com correção do nome da função (V4)
     const exportToPDF = async () => {
-        // --- INÍCIO: Verificação de Segurança ---
-        // Adiciona um log para sabermos que a função foi chamada
         console.log("Iniciando exportação para PDF..."); 
-        // --- FIM: Verificação de Segurança ---
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -772,32 +770,22 @@
         };
 
         // --- Configurações do Layout ---
-        let y = 30; // Y inicial (abaixo do título)
+        let y = 30; // Y inicial
         const pageHeight = 280; 
         const margin = 10; // Margem da página
         const columns = 5; 
-        
-        // Espaçamento da grade
         const columnSpacing = 4;
         const rowSpacing = 4;
-        
-        // Cálculo da largura do card
         const usableWidth = doc.internal.pageSize.getWidth() - 2 * margin;
         const cardWidth = (usableWidth - (columns - 1) * columnSpacing) / columns;
 
         // --- Definição da Estrutura INTERNA do Card (em mm) ---
         const cardPadding = 3;
         const cardCornerRadius = 3;
-        
-        // 1. Container da Imagem (o box cinza)
         const imageContainerWidth = cardWidth - 2 * cardPadding;
-        const imageContainerHeight = 30; // Aproximação de h-[120px]
-        const imageContainerColor = "#f3f4f6"; // bg-gray-200
-
-        // 2. Bloco "Tenho" (o box cinza na base)
+        const imageContainerHeight = 30; 
+        const imageContainerColor = "#f3f4f6"; 
         const tenhoBoxHeight = 8;
-        
-        // 3. Altura total FIXA do Card
         const cardHeight = cardPadding + imageContainerHeight + 18 + tenhoBoxHeight + cardPadding; // Total ~62mm
 
         // Cores
@@ -806,40 +794,37 @@
         const colorTextName = "#1f2937";
         const colorTextBrand = "#6b7280";
         const colorCheckboxBorder = "#9ca3af";
-        const colorCheckboxChecked = "#059669"; // Verde do check
+        const colorCheckboxChecked = "#059669"; 
 
         
         // --- Loop Principal ---
-        try { // Adiciona um try/catch para capturar qualquer erro
-            for (let i = 0; i < filteredMiniatures.length; i += columns) { // Itera por LINHA
+        try { 
+            for (let i = 0; i < filteredMiniatures.length; i += columns) { 
                 
-                // 1. Verificar Quebra de Página (antes de desenhar a linha)
                 if (y + cardHeight > pageHeight - margin) { 
                     doc.addPage();
-                    y = margin; // Reseta Y para o topo
+                    y = margin; 
                 }
 
-                // 2. Desenhar cada Card na Linha
-                for (let j = 0; j < columns; j++) { // Itera por COLUNA
+                for (let j = 0; j < columns; j++) { 
                     const index = i + j;
                     if (index >= filteredMiniatures.length) break;
 
                     const mini = filteredMiniatures[index];
                     const isCollected = !!collection[mini.brand]?.[mini.id];
-
-                    // Posição (x, y) do card atual
                     const x = margin + j * (cardWidth + columnSpacing);
 
-                    doc.saveGState();
+                    // MUDANÇA: Corrigido de saveGState para saveGraphicsState
+                    doc.saveGraphicsState();
 
                     // --- A. Desenhar Card (Fundo Branco e Borda) ---
-                    doc.setFillColor("#ffffff"); // bg-white
+                    doc.setFillColor("#ffffff"); 
                     if (isCollected) {
                         doc.setDrawColor(colorBorderCollected);
-                        doc.setLineWidth(1.5); // Borda grossa (4px)
+                        doc.setLineWidth(1.5); 
                     } else {
                         doc.setDrawColor(colorBorderDefault);
-                        doc.setLineWidth(0.5); // Borda fina
+                        doc.setLineWidth(0.5); 
                     }
                     doc.roundedRect(x, y, cardWidth, cardHeight, cardCornerRadius, cardCornerRadius, 'FD'); 
 
@@ -847,21 +832,20 @@
                     const imgContainerX = x + cardPadding;
                     const imgContainerY = y + cardPadding;
                     doc.setFillColor(imageContainerColor);
-                    doc.setDrawColor(imageContainerColor); // Sem borda
+                    doc.setDrawColor(imageContainerColor); 
                     doc.roundedRect(
                         imgContainerX, 
                         imgContainerY, 
                         imageContainerWidth, 
                         imageContainerHeight, 
-                        cardCornerRadius - 1, // Raio menor
+                        cardCornerRadius - 1, 
                         cardCornerRadius - 1,
-                        'F' // Apenas Fill
+                        'F' 
                     );
 
                     // --- C. Carregar e Desenhar Imagem (com 'object-contain') ---
                     const imgResult = await loadImageAsBase64(mini.image);
                     if (imgResult && imgResult.dataUrl) {
-                        // Lógica 'object-contain'
                         const w = imgResult.width;
                         const h = imgResult.height;
                         const containerW = imageContainerWidth;
@@ -871,15 +855,14 @@
 
                         let finalW, finalH, imgX, imgY;
 
-                        if (imgRatio > containerRatio) { // Imagem mais larga
+                        if (imgRatio > containerRatio) { 
                             finalW = containerW;
                             finalH = finalW / imgRatio;
-                        } else { // Imagem mais alta
+                        } else { 
                             finalH = containerH;
                             finalW = finalH * imgRatio;
                         }
 
-                        // Centralizar imagem
                         imgX = imgContainerX + (containerW - finalW) / 2;
                         imgY = imgContainerY + (containerH - finalH) / 2;
                         
@@ -894,7 +877,6 @@
                     const textCenterX = x + cardWidth / 2;
 
                     // Nome
-                    // MUDANÇA: Substituído setFont por setFontStyle
                     doc.setFontStyle("bold"); 
                     doc.setFontSize(8);
                     doc.setTextColor(colorTextName);
@@ -905,7 +887,6 @@
                     // Marca
                     const nameLines = splitName.length > 2 ? 2 : splitName.length; 
                     const brandY = nameY + (nameLines * 3.5) + 2;
-                    // MUDANÇA: Substituído setFont por setFontStyle
                     doc.setFontStyle("normal"); 
                     doc.setFontSize(7);
                     doc.setTextColor(colorTextBrand);
@@ -915,7 +896,7 @@
                     const tenhoBoxX = x + cardPadding;
                     const tenhoBoxY = y + cardHeight - cardPadding - tenhoBoxHeight; 
                     
-                    doc.setFillColor(imageContainerColor); // bg-gray-100
+                    doc.setFillColor(imageContainerColor); 
                     doc.setDrawColor(imageContainerColor);
                     doc.roundedRect(
                         tenhoBoxX, 
@@ -939,7 +920,6 @@
 
                     const textX = checkboxX + checkboxSize + 2; 
                     const textY = tenhoBoxY + tenhoBoxHeight / 2;
-                    // MUDANÇA: Substituído setFont por setFontStyle
                     doc.setFontStyle("bold"); 
                     doc.setFontSize(8);
                     doc.setTextColor(colorTextName);
@@ -952,19 +932,17 @@
                         doc.line(checkboxX + 1.2, checkboxY + 2.2, checkboxX + 2.5, checkboxY + 0.8); // Perna 2
                     }
 
-                    doc.restoreGState();
+                    // MUDANÇA: Corrigido de restoreGState para restoreGraphicsState
+                    doc.restoreGraphicsState();
                 }
                 
-                // 3. Avançar o Y para a próxima linha
                 y += cardHeight + rowSpacing;
             }
 
-            // Se tudo correu bem, salva o arquivo
             doc.save("colecao_maisto_cards.pdf");
             console.log("PDF salvo com sucesso!");
 
         } catch (error) {
-            // Se der qualquer erro durante o loop, exibe no console
             console.error("Erro ao gerar o PDF:", error);
             alert("Ocorreu um erro ao gerar o PDF. Verifique o console para mais detalhes.");
         }
@@ -1109,6 +1087,7 @@
 
 </body>
 </html>
+
 
 
 
