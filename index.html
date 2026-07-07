@@ -797,6 +797,7 @@ Trator: [
   const getInitialLockedItems = () => JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_LOCKED) || "{}");
 
   // ===== FUNCOES GITHUB =====
+// ===== FUNCOES GITHUB =====
   const salvarNaNuvem = async (colecao, locked) => {
     try {
       await fetch(`https://api.github.com/gists/${GIST_ID}`, {
@@ -804,14 +805,17 @@ Trator: [
         headers: { 'Authorization': `token ${TOKEN}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           files: {
-            [GIST_FILENAME]: {
-              content: JSON.stringify({ colecao, locked }, null, 2)
-            }
+            [GIST_FILENAME]: { content: JSON.stringify({ colecao, locked }, null, 2) }
           }
         })
       });
+      setSyncStatus('Sincronizado');
       return true;
-    } catch(e) { console.log("Erro ao salvar na nuvem:", e); return false; }
+    } catch(e) {
+      console.log("Erro ao salvar na nuvem:", e);
+      setSyncStatus('Erro - Offline');
+      return false;
+    }
   }
 
   const carregarDaNuvem = async () => {
@@ -820,7 +824,46 @@ Trator: [
       const data = await res.json();
       const json = JSON.parse(data.files[GIST_FILENAME].content);
       return json;
-    } catch(e) { console.log("Erro ao carregar da nuvem:", e); return null; }
+    } catch(e) {
+      console.log("Erro ao carregar da nuvem:", e);
+      return null;
+    }
+  }
+
+  const sincronizarAgora = async () => {
+    setSyncStatus('Sincronizando...');
+
+    // 1. BAIXA o que tá na nuvem
+    const dadosNuvem = await carregarDaNuvem();
+
+    // 2. PEGA o que tá local
+    const dadosLocal = {
+      colecao: JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_COLLECTION) || "{}"),
+      locked: JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_LOCKED) || "{}")
+    };
+
+    if(dadosNuvem) {
+      // 3. JUNTA os dois - se tiver no PC ou no Celular, fica com os dois
+      const colecaoJunta = {...dadosLocal.colecao };
+      const lockedJunta = {...dadosLocal.locked };
+
+      // pega tudo da nuvem e joga pro local
+      for(const brand in dadosNuvem.colecao) {
+        colecaoJunta[brand] = {...colecaoJunta[brand],...dadosNuvem.colecao[brand] }
+      }
+      for(const brand in dadosNuvem.locked) {
+        lockedJunta[brand] = {...lockedJunta[brand],...dadosNuvem.locked[brand] }
+      }
+
+      // 4. ATUALIZA a tela e salva local
+      setCollection(colecaoJunta);
+      setLockedItems(lockedJunta);
+      localStorage.setItem(LOCAL_STORAGE_KEY_COLLECTION, JSON.stringify(colecaoJunta));
+      localStorage.setItem(LOCAL_STORAGE_KEY_LOCKED, JSON.stringify(lockedJunta));
+
+      // 5. ENVIA de volta pra nuvem pra ficar igual nos 2 lados
+      await salvarNaNuvem(colecaoJunta, lockedJunta);
+    }
   }
   // =========================
 
