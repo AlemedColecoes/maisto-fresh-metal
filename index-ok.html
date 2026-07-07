@@ -34,6 +34,12 @@
 <script type="text/babel">
   const { useState, useEffect, useCallback, useMemo } = React;
 
+  // ===== CONFIG GITHUB =====
+  const GIST_ID = "18497a472c5e73107148945c5b000ad7"
+  const TOKEN = "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"
+  const GIST_FILENAME = "colecao_maisto.json"
+  // =========================
+
   const initialMiniaturesByBrand = {
     Audi: [
       { id: 1, name: "2019 Audi A6", image: "img/audi/2019-audi-a6.jpg" },
@@ -71,6 +77,7 @@
       { id: 4, name: "Buick Bengal", image: "img/buick/buick-bengal- concept-azul.jpg" },
       { id: 5, name: "Buick Bengal", image: "img/buick/buick-bengal-concept.jpg" },
       { id: 6, name: "1987 Buick Grand National", image: "img/buick/1987-buick-grand-national.jpg" },
+      { id: 7, name: "1987 Buick Grand National", image: "img/buick/1987-buick-grand-national-2.jpg" },
     ],
     Cadillac: [
       { id: 1, name: "Cadillac Cien", image: "img/cadillac/2002-cadillac-cien.jpg" },
@@ -205,7 +212,8 @@
       { id: 31, name: "Dodge Durango", image: "img/dodge/dodge-durango-2.jpg" },
       { id: 32, name: "Dodge Ram 1500 Quad Cab", image: "img/dodge/dodge-ram-1500-quad-cab-1.jpg" },
       { id: 33, name: "Dodge Ram 1500 Quad Cab", image: "img/dodge/dodge-ram-1500-quad-cab-2.jpg" },
-      { id: 34, name: "Dodge Ram 1500 Rebel", image: "img/dodge/dodge-ram-1500-rebel.jpg" },
+      { id: 34, name: "Dodge Ram 1500 Quad Cab", image: "img/dodge/dodge-ram-quad-cab.jpg" },
+      { id: 35, name: "Dodge Ram 1500 Rebel", image: "img/dodge/dodge-ram-1500-rebel.jpg" },
     ],
     Fantasia: [
       { id: 1, name: "2021 GT Racer", image: "img/fantasia/2021-gt-racer-1.jpg" },
@@ -258,72 +266,73 @@
       { id: 48, name: "Leadfoot", image: "img/fantasia/leadfoot-02.jpg" },
       { id: 49, name: "Leadfoot", image: "img/fantasia/leadfoot-03.jpg" },
       { id: 50, name: "Leadfoot", image: "img/fantasia/leadfoot-04.jpg" },
-      { id: 51, name: "Leadslinger", image: "img/fantasia/leadslinger-1.jpg" },
-      { id: 52, name: "Leadslinger", image: "img/fantasia/leadslinger-2.jpg" },
-      { id: 53, name: "Leadslinger", image: "img/fantasia/leadslinger-3.jpg" },
-      { id: 54, name: "Lobo", image: "img/fantasia/lobo.jpg" },
-      { id: 55, name: "Mad Mini", image: "img/fantasia/mad-mini.jpg" },
-      { id: 56, name: "MCG 64", image: "img/fantasia/mcg-64-1.jpg" },
-      { id: 57, name: "MCG 64", image: "img/fantasia/mcg-64-2.jpg" },
-      { id: 58, name: "Mozkeeto", image: "img/fantasia/mozkeeto.jpg" },
-      { id: 59, name: "MyCar", image: "img/fantasia/mycar-1.jpg" },
-      { id: 60, name: "MyCar", image: "img/fantasia/mycar-2.jpg" },
-      { id: 61, name: "Octa Blitzer", image: "img/fantasia/octa-blitzer.jpg" },
-      { id: 62, name: "PB DRT", image: "img/fantasia/pb-drt.jpg" },
-      { id: 63, name: "Phender", image: "img/fantasia/phender.jpg" },
-      { id: 64, name: "Pipester", image: "img/fantasia/pipester.jpg" },
-      { id: 65, name: "Podvee", image: "img/fantasia/podvee.jpg" },
-      { id: 66, name: "Pointman", image: "img/fantasia/pointman.jpg" },
-      { id: 67, name: "Puff Adder", image: "img/fantasia/puff-adder.jpg" },
-      { id: 68, name: "Rally XTR", image: "img/fantasia/rally-xtr.jpg" },
-      { id: 69, name: "Roadkill GT", image: "img/fantasia/roadkill-gt.jpg" },
-      { id: 70, name: "Rosewood", image: "img/fantasia/rosewood-1.jpg" },
-      { id: 71, name: "Rosewood", image: "img/fantasia/rosewood-2.jpg" },
-      { id: 72, name: "Rosewood", image: "img/fantasia/rosewood-3.jpg" },
-      { id: 73, name: "RTR 13", image: "img/fantasia/rtr-13.jpg" },
-      { id: 74, name: "RV 770", image: "img/fantasia/rv770.jpg" },
-      { id: 75, name: "RV 770", image: "img/fantasia/rv770-azul.jpg" },
-      { id: 76, name: "Sand Runner", image: "img/fantasia/sand-runner.jpg" },
-      { id: 77, name: "Sand Slogger", image: "img/fantasia/sand-slogger.jpg" },
-      { id: 78, name: "SE 51", image: "img/fantasia/se-51.jpg" },
-      { id: 79, name: "Snarlly", image: "img/fantasia/snarlly.jpg" },
-      { id: 80, name: "ShredWing", image: "img/fantasia/shredwing.jpg" },
-      { id: 81, name: "Skool Bust", image: "img/fantasia/skool-bust.jpg" },
-      { id: 82, name: "Skoop", image: "img/fantasia/skoop.jpg" },
-      { id: 83, name: "Skooter", image: "img/fantasia/skooter.jpg" },
-      { id: 84, name: "Slayer", image: "img/fantasia/slayer-black.jpg" },
-      { id: 85, name: "Slayer", image: "img/fantasia/slayer.jpg" },
-      { id: 86, name: "Slayer", image: "img/fantasia/slayer-vd.jpg" },
-      { id: 87, name: "Snowmobile", image: "img/fantasia/snowmobile.jpg" },
-      { id: 88, name: "Speed Beast", image: "img/fantasia/speed-beast-1.jpg" },
-      { id: 89, name: "Speed Beast", image: "img/fantasia/speed-beast-2.jpg" },
-      { id: 90, name: "Speed Dawg", image: "img/fantasia/speed-dawg.jpg" },
-      { id: 91, name: "Squalo", image: "img/fantasia/squalo.jpg" },
-      { id: 92, name: "Street Speeder", image: "img/fantasia/street-speeder.jpg" },
-      { id: 93, name: "Superbike", image: "img/fantasia/superbike.jpg" },
-      { id: 94, name: "Swamp Rocket", image: "img/fantasia/swamp-rocket.jpg" },
-      { id: 95, name: "Tireslayer", image: "img/fantasia/tireslayer.jpg" },
-      { id: 96, name: "Tork Twist", image: "img/fantasia/tork-twist.jpg" },
-      { id: 97, name: "Tornado XR", image: "img/fantasia/tornado-xr.jpg" },
-      { id: 98, name: "Trophy Truck", image: "img/fantasia/trophy-truck.jpg" },
-      { id: 99, name: "V7", image: "img/fantasia/v7-azul.jpg" },
-      { id: 100, name: "V7", image: "img/fantasia/v7-vm.jpg" },
-      { id: 101, name: "V7", image: "img/fantasia/v7.jpg" },
-      { id: 102, name: "V7", image: "img/fantasia/v7-city-fire.jpg" },
-      { id: 103, name: "Vantasy", image: "img/fantasia/vantasy-1.jpg" },
-      { id: 104, name: "Vantasy", image: "img/fantasia/vantasy-2.jpg" },
-      { id: 105, name: "Vantasy", image: "img/fantasia/vantasy-3.jpg" },
-      { id: 106, name: "Vantasy", image: "img/fantasia/vantasy-4.jpg" },
-      { id: 107, name: "Vantasy", image: "img/fantasia/vantasy-5.jpg" },
-      { id: 108, name: "Vantasy", image: "img/fantasia/vantasy-6.jpg" },
-      { id: 109, name: "Vantasy", image: "img/fantasia/vantasy-7.jpg" },
-      { id: 110, name: "Vapor", image: "img/fantasia/vapor.jpg" },
-      { id: 111, name: "Velocidad", image: "img/fantasia/velocidad.jpg" },
-      { id: 112, name: "VRT 16", image: "img/fantasia/vrt-16-1.jpg" },
-      { id: 113, name: "VRT 16", image: "img/fantasia/vrt-16-2.jpg" },
-      { id: 114, name: "VRT 16", image: "img/fantasia/vrt-16-3.jpg" },
-      { id: 115, name: "Whiplash", image: "img/fantasia/whiplash.jpg" },
-      { id: 116, name: "Wing Ding", image: "img/fantasia/wing-ding.jpg" },
+      { id: 51, name: "Leadfoot", image: "img/fantasia/leadfoot-05.jpg" },
+      { id: 52, name: "Leadslinger", image: "img/fantasia/leadslinger-1.jpg" },
+      { id: 53, name: "Leadslinger", image: "img/fantasia/leadslinger-2.jpg" },
+      { id: 54, name: "Leadslinger", image: "img/fantasia/leadslinger-3.jpg" },
+      { id: 55, name: "Lobo", image: "img/fantasia/lobo.jpg" },
+      { id: 56, name: "Mad Mini", image: "img/fantasia/mad-mini.jpg" },
+      { id: 57, name: "MCG 64", image: "img/fantasia/mcg-64-1.jpg" },
+      { id: 58, name: "MCG 64", image: "img/fantasia/mcg-64-2.jpg" },
+      { id: 59, name: "Mozkeeto", image: "img/fantasia/mozkeeto.jpg" },
+      { id: 60, name: "MyCar", image: "img/fantasia/mycar-1.jpg" },
+      { id: 61, name: "MyCar", image: "img/fantasia/mycar-2.jpg" },
+      { id: 62, name: "Octa Blitzer", image: "img/fantasia/octa-blitzer.jpg" },
+      { id: 63, name: "PB DRT", image: "img/fantasia/pb-drt.jpg" },
+      { id: 64, name: "Phender", image: "img/fantasia/phender.jpg" },
+      { id: 65, name: "Pipester", image: "img/fantasia/pipester.jpg" },
+      { id: 66, name: "Podvee", image: "img/fantasia/podvee.jpg" },
+      { id: 67, name: "Pointman", image: "img/fantasia/pointman.jpg" },
+      { id: 68, name: "Puff Adder", image: "img/fantasia/puff-adder.jpg" },
+      { id: 69, name: "Rally XTR", image: "img/fantasia/rally-xtr.jpg" },
+      { id: 70, name: "Roadkill GT", image: "img/fantasia/roadkill-gt.jpg" },
+      { id: 71, name: "Rosewood", image: "img/fantasia/rosewood-1.jpg" },
+      { id: 72, name: "Rosewood", image: "img/fantasia/rosewood-2.jpg" },
+      { id: 73, name: "Rosewood", image: "img/fantasia/rosewood-3.jpg" },
+      { id: 74, name: "RTR 13", image: "img/fantasia/rtr-13.jpg" },
+      { id: 75, name: "RV 770", image: "img/fantasia/rv770.jpg" },
+      { id: 76, name: "RV 770", image: "img/fantasia/rv770-azul.jpg" },
+      { id: 77, name: "Sand Runner", image: "img/fantasia/sand-runner.jpg" },
+      { id: 78, name: "Sand Slogger", image: "img/fantasia/sand-slogger.jpg" },
+      { id: 79, name: "SE 51", image: "img/fantasia/se-51.jpg" },
+      { id: 80, name: "Snarlly", image: "img/fantasia/snarlly.jpg" },
+      { id: 81, name: "ShredWing", image: "img/fantasia/shredwing.jpg" },
+      { id: 82, name: "Skool Bust", image: "img/fantasia/skool-bust.jpg" },
+      { id: 83, name: "Skoop", image: "img/fantasia/skoop.jpg" },
+      { id: 84, name: "Skooter", image: "img/fantasia/skooter.jpg" },
+      { id: 85, name: "Slayer", image: "img/fantasia/slayer-black.jpg" },
+      { id: 86, name: "Slayer", image: "img/fantasia/slayer.jpg" },
+      { id: 87, name: "Slayer", image: "img/fantasia/slayer-vd.jpg" },
+      { id: 88, name: "Snowmobile", image: "img/fantasia/snowmobile.jpg" },
+      { id: 89, name: "Speed Beast", image: "img/fantasia/speed-beast-1.jpg" },
+      { id: 90, name: "Speed Beast", image: "img/fantasia/speed-beast-2.jpg" },
+      { id: 91, name: "Speed Dawg", image: "img/fantasia/speed-dawg.jpg" },
+      { id: 92, name: "Squalo", image: "img/fantasia/squalo.jpg" },
+      { id: 93, name: "Street Speeder", image: "img/fantasia/street-speeder.jpg" },
+      { id: 94, name: "Superbike", image: "img/fantasia/superbike.jpg" },
+      { id: 95, name: "Swamp Rocket", image: "img/fantasia/swamp-rocket.jpg" },
+      { id: 96, name: "Tireslayer", image: "img/fantasia/tireslayer.jpg" },
+      { id: 97, name: "Tork Twist", image: "img/fantasia/tork-twist.jpg" },
+      { id: 98, name: "Tornado XR", image: "img/fantasia/tornado-xr.jpg" },
+      { id: 99, name: "Trophy Truck", image: "img/fantasia/trophy-truck.jpg" },
+      { id: 100, name: "V7", image: "img/fantasia/v7-azul.jpg" },
+      { id: 101, name: "V7", image: "img/fantasia/v7-vm.jpg" },
+      { id: 102, name: "V7", image: "img/fantasia/v7.jpg" },
+      { id: 103, name: "V7", image: "img/fantasia/v7-city-fire.jpg" },
+      { id: 104, name: "Vantasy", image: "img/fantasia/vantasy-1.jpg" },
+      { id: 105, name: "Vantasy", image: "img/fantasia/vantasy-2.jpg" },
+      { id: 106, name: "Vantasy", image: "img/fantasia/vantasy-3.jpg" },
+      { id: 107, name: "Vantasy", image: "img/fantasia/vantasy-4.jpg" },
+      { id: 108, name: "Vantasy", image: "img/fantasia/vantasy-5.jpg" },
+      { id: 109, name: "Vantasy", image: "img/fantasia/vantasy-6.jpg" },
+      { id: 110, name: "Vantasy", image: "img/fantasia/vantasy-7.jpg" },
+      { id: 111, name: "Vapor", image: "img/fantasia/vapor.jpg" },
+      { id: 112, name: "Velocidad", image: "img/fantasia/velocidad.jpg" },
+      { id: 113, name: "VRT 16", image: "img/fantasia/vrt-16-1.jpg" },
+      { id: 114, name: "VRT 16", image: "img/fantasia/vrt-16-2.jpg" },
+      { id: 115, name: "VRT 16", image: "img/fantasia/vrt-16-3.jpg" },
+      { id: 116, name: "Whiplash", image: "img/fantasia/whiplash.jpg" },
+      { id: 117, name: "Wing Ding", image: "img/fantasia/wing-ding.jpg" },
     ],
     Ford: [
       { id: 1, name: "1932 Ford Sedan Delivery", image: "img/ford/1932-ford-sedan-delivery-01.jpg" },
@@ -349,57 +358,56 @@
       { id: 21, name: "1964 Ford Econoline Van", image: "img/ford/1964-ford-econoline-van-06.jpg" },
       { id: 22, name: "1964 Ford Econoline Van", image: "img/ford/1964-ford-econoline-van-07.jpg" },
       { id: 23, name: "1966 Ford Bronco", image: "img/ford/1966-ford-bronco.jpg" },
-      { id: 24, name: "1970 Ford Boss Mustang", image: "img/ford/1970-ford-mustang-boss-1.jpg" },
-      { id: 25, name: "1970 Ford Boss Mustang", image: "img/ford/1970-ford-mustang-boss-2.jpg" },
-      { id: 26, name: "1977 Ford F-150", image: "img/ford/1977-ford-f-150-1.jpg" },
-      { id: 27, name: "1977 Ford F-150", image: "img/ford/1977-ford-f-150-2.jpg" },
-      { id: 28, name: "1993 Ford Mustang Mach 3", image: "img/ford/1993-ford-mustang-mach3-1.jpg" },
-      { id: 29, name: "1993 Ford Mustang Mach 3", image: "img/ford/1993-ford-mustang-mach3-2.jpg" },
-      { id: 30, name: "1999 Ford Mustang", image: "img/ford/1999-ford-mustang-1.jpg" },
-      { id: 31, name: "1999 Ford Mustang", image: "img/ford/1999-ford-mustang-2.jpg" },
-      { id: 32, name: "1999 Ford Mustang", image: "img/ford/1999-ford-mustang-3.jpg" },
-      { id: 33, name: "1999 Ford Mustang", image: "img/ford/1999-ford-mustang-4.jpg" },
-      { id: 34, name: "2004 Ford F150", image: "img/ford/2004-ford-f150.jpg" },
-      { id: 35, name: "2004 Ford F150", image: "img/ford/2004-ford-f150s.jpg" },
-      { id: 36, name: "2009 Ford F-150 SVT Raptor", image: "img/ford/2009-ford-f-150-svt-raptor-1.jpg" },
-      { id: 37, name: "2009 Ford F-150 SVT Raptor", image: "img/ford/2010-ford-f-150-svt-raptor-2.jpg" },
-      { id: 38, name: "2009 Ford F-150 SVT Raptor", image: "img/ford/2010-ford-f-150-svt-raptor-3.jpg" },
-      { id: 39, name: "2010 Ford Mustang GT", image: "img/ford/2010-ford-mustang-gt-1.jpg" },
-      { id: 40, name: "2010 Ford Mustang GT", image: "img/ford/2010-ford-mustang-gt-2.jpg" },
-      { id: 41, name: "2013 Ford Focus ST", image: "img/ford/2013-ford-focus-st-01.jpg" },
-      { id: 42, name: "2013 Ford Focus ST", image: "img/ford/2013-ford-focus-st-02.jpg" },
-      { id: 43, name: "2013 Ford Focus ST", image: "img/ford/2013-ford-focus-st-03.jpg" },
-      { id: 44, name: "2013 Ford Mustang Boss 302", image: "img/ford/2013-ford-mustang-boss-302-01.jpg" },
-      { id: 45, name: "2013 Ford Mustang Boss 302", image: "img/ford/2013-ford-mustang-boss-302-02.jpg" },
-      { id: 46, name: "2013 Ford Mustang Boss 302", image: "img/ford/2013-ford-mustang-boss-302-03.jpg" },
-      { id: 47, name: "2013 Ford Mustang Boss 302", image: "img/ford/2013-ford-mustang-boss-302-04.jpg" },
-      { id: 48, name: "2015 Ford Mustang GT", image: "img/ford/2015-ford-mustang-gt-01.jpg" },
-      { id: 49, name: "2015 Ford Mustang GT", image: "img/ford/2015-ford-mustang-gt-02.jpg" },
-      { id: 50, name: "2015 Ford Mustang GT", image: "img/ford/2015-ford-mustang-gt-03.jpg" },
-      { id: 51, name: "2015 Ford Mustang GT", image: "img/ford/2015-ford-mustang-gt-04.jpg" },
-      { id: 52, name: "2015 Ford Mustang GT", image: "img/ford/2015-ford-mustang-gt-05.jpg" },
-      { id: 53, name: "2021 Ford Bronco", image: "img/ford/2020-ford-bronco-lar.jpg" },
-      { id: 54, name: "2021 Ford Bronco", image: "img/ford/2021-ford-bronco-cinza.jpg" },
-      { id: 55, name: "2021 Ford F150 Raptor", image: "img/ford/2021-ford-f150-raptor-1.jpg" },
-      { id: 56, name: "2021 Ford F150 Raptor", image: "img/ford/2021-ford-f150-raptor-2.jpg" },
-      { id: 57, name: "2025 Ford Mustang GTD", image: "img/ford/2025-ford-mustang-gtd.jpg" },
-      { id: 58, name: "Ford Escape", image: "img/ford/ford-escape.jpg" },
-      { id: 59, name: "Ford Explorer Sport Track", image: "img/ford/ford-explorer-sport-trac1.jpg" },
-      { id: 60, name: "Ford Explorer Sport Track", image: "img/ford/ford-explorer-sport-trac2.jpg" },
-      { id: 61, name: "Ford Mighty F350 2002", image: "img/ford/ford-mighty-f350-2002.jpg" },
-      { id: 62, name: "Ford Street Ka", image: "img/ford/ford-street-ka.jpg" },
-      { id: 63, name: "Ford Taurus Stock Car", image: "img/ford/ford-taurus-stock-car1.jpg" },
-      { id: 64, name: "Ford Taurus Stock Car", image: "img/ford/ford-taurus-stock-car2.jpg" },
-      { id: 65, name: "Ford Thunderbird", image: "img/ford/ford-thunderbird-01.jpg" },
-      { id: 66, name: "Ford Thunderbird", image: "img/ford/ford-thunderbird-02.jpg" },
-      { id: 67, name: "Ford Thunderbird", image: "img/ford/ford-thunderbird-03.jpg" },
-      { id: 68, name: "Ford Thunderbird", image: "img/ford/ford-thunderbird-04.jpg" },
-      { id: 69, name: "Ford Transit Conect", image: "img/ford/ford-transit-conect-01.jpg" },
-      { id: 70, name: "Ford Transit Conect", image: "img/ford/ford-transit-conect-02.jpg" },
-      { id: 71, name: "Ford Transit Conect", image: "img/ford/ford-transit-conect-03.jpg" },
-      { id: 72, name: "Ford Transit Conect", image: "img/ford/ford-transit-conect-04.jpg" },
-
-
+      { id: 24, name: "1966 Ford Bronco", image: "img/ford/1966-ford-bronco-2.jpg" },
+      { id: 25, name: "1970 Ford Boss Mustang", image: "img/ford/1970-ford-mustang-boss-1.jpg" },
+      { id: 26, name: "1970 Ford Boss Mustang", image: "img/ford/1970-ford-mustang-boss-2.jpg" },
+      { id: 27, name: "1977 Ford F-150", image: "img/ford/1977-ford-f-150-1.jpg" },
+      { id: 28, name: "1977 Ford F-150", image: "img/ford/1977-ford-f-150-2.jpg" },
+      { id: 29, name: "1993 Ford Mustang Mach 3", image: "img/ford/1993-ford-mustang-mach3-1.jpg" },
+      { id: 30, name: "1993 Ford Mustang Mach 3", image: "img/ford/1993-ford-mustang-mach3-2.jpg" },
+      { id: 31, name: "1999 Ford Mustang", image: "img/ford/1999-ford-mustang-1.jpg" },
+      { id: 32, name: "1999 Ford Mustang", image: "img/ford/1999-ford-mustang-2.jpg" },
+      { id: 33, name: "1999 Ford Mustang", image: "img/ford/1999-ford-mustang-3.jpg" },
+      { id: 34, name: "1999 Ford Mustang", image: "img/ford/1999-ford-mustang-4.jpg" },
+      { id: 35, name: "2004 Ford F150", image: "img/ford/2004-ford-f150.jpg" },
+      { id: 36, name: "2004 Ford F150", image: "img/ford/2004-ford-f150s.jpg" },
+      { id: 37, name: "2009 Ford F-150 SVT Raptor", image: "img/ford/2009-ford-f-150-svt-raptor-1.jpg" },
+      { id: 38, name: "2009 Ford F-150 SVT Raptor", image: "img/ford/2010-ford-f-150-svt-raptor-2.jpg" },
+      { id: 39, name: "2009 Ford F-150 SVT Raptor", image: "img/ford/2010-ford-f-150-svt-raptor-3.jpg" },
+      { id: 40, name: "2010 Ford Mustang GT", image: "img/ford/2010-ford-mustang-gt-1.jpg" },
+      { id: 41, name: "2010 Ford Mustang GT", image: "img/ford/2010-ford-mustang-gt-2.jpg" },
+      { id: 42, name: "2013 Ford Focus ST", image: "img/ford/2013-ford-focus-st-01.jpg" },
+      { id: 43, name: "2013 Ford Focus ST", image: "img/ford/2013-ford-focus-st-02.jpg" },
+      { id: 44, name: "2013 Ford Focus ST", image: "img/ford/2013-ford-focus-st-03.jpg" },
+      { id: 45, name: "2013 Ford Mustang Boss 302", image: "img/ford/2013-ford-mustang-boss-302-01.jpg" },
+      { id: 46, name: "2013 Ford Mustang Boss 302", image: "img/ford/2013-ford-mustang-boss-302-02.jpg" },
+      { id: 47, name: "2013 Ford Mustang Boss 302", image: "img/ford/2013-ford-mustang-boss-302-03.jpg" },
+      { id: 48, name: "2013 Ford Mustang Boss 302", image: "img/ford/2013-ford-mustang-boss-302-04.jpg" },
+      { id: 49, name: "2015 Ford Mustang GT", image: "img/ford/2015-ford-mustang-gt-01.jpg" },
+      { id: 50, name: "2015 Ford Mustang GT", image: "img/ford/2015-ford-mustang-gt-02.jpg" },
+      { id: 51, name: "2015 Ford Mustang GT", image: "img/ford/2015-ford-mustang-gt-03.jpg" },
+      { id: 52, name: "2015 Ford Mustang GT", image: "img/ford/2015-ford-mustang-gt-04.jpg" },
+      { id: 53, name: "2015 Ford Mustang GT", image: "img/ford/2015-ford-mustang-gt-05.jpg" },
+      { id: 54, name: "2021 Ford Bronco", image: "img/ford/2020-ford-bronco-lar.jpg" },
+      { id: 55, name: "2021 Ford Bronco", image: "img/ford/2021-ford-bronco-cinza.jpg" },
+      { id: 56, name: "2021 Ford F150 Raptor", image: "img/ford/2021-ford-f150-raptor-1.jpg" },
+      { id: 57, name: "2021 Ford F150 Raptor", image: "img/ford/2021-ford-f150-raptor-2.jpg" },
+      { id: 58, name: "2025 Ford Mustang GTD", image: "img/ford/2025-ford-mustang-gtd.jpg" },
+      { id: 59, name: "Ford Escape", image: "img/ford/ford-escape.jpg" },
+      { id: 60, name: "Ford Explorer Sport Track", image: "img/ford/ford-explorer-sport-trac1.jpg" },
+      { id: 61, name: "Ford Explorer Sport Track", image: "img/ford/ford-explorer-sport-trac2.jpg" },
+      { id: 62, name: "Ford Mighty F350 2002", image: "img/ford/ford-mighty-f350-2002.jpg" },
+      { id: 63, name: "Ford Street Ka", image: "img/ford/ford-street-ka.jpg" },
+      { id: 64, name: "Ford Taurus Stock Car", image: "img/ford/ford-taurus-stock-car1.jpg" },
+      { id: 65, name: "Ford Taurus Stock Car", image: "img/ford/ford-taurus-stock-car2.jpg" },
+      { id: 66, name: "Ford Thunderbird", image: "img/ford/ford-thunderbird-01.jpg" },
+      { id: 67, name: "Ford Thunderbird", image: "img/ford/ford-thunderbird-02.jpg" },
+      { id: 68, name: "Ford Thunderbird", image: "img/ford/ford-thunderbird-03.jpg" },
+      { id: 69, name: "Ford Thunderbird", image: "img/ford/ford-thunderbird-04.jpg" },
+      { id: 70, name: "Ford Transit Conect", image: "img/ford/ford-transit-conect-01.jpg" },
+      { id: 71, name: "Ford Transit Conect", image: "img/ford/ford-transit-conect-02.jpg" },
+      { id: 72, name: "Ford Transit Conect", image: "img/ford/ford-transit-conect-03.jpg" },
+      { id: 73, name: "Ford Transit Conect", image: "img/ford/ford-transit-conect-04.jpg" },
     ],
     Honda: [
       { id: 1, name: "Honda S2000", image: "img/honda/honda-s2000-1.jpg" },
@@ -408,18 +416,20 @@
       { id: 4, name: "Honda Civic Type R", image: "img/honda/honda-civic-type-r.jpg" },      
     ], 
     Hummer: [
-      { id: 1, name: "2001 Hummer H2 SUT", image: "img/hummer/2001-hummer-h2-sut.jpg" },
-      { id: 2, name: "2003 Hummer H2 SUV", image: "img/hummer/2003-hummer-h2-suv-amarelo.jpg" },
-      { id: 3, name: "2003 Hummer H2 SUV", image: "img/hummer/2003-hummer-h2-suv-amarelo2.jpg" },
-      { id: 4, name: "2003 Hummer H2 SUV", image: "img/hummer/2003-hummer-h2-suv-branco.jpg" },
-      { id: 5, name: "2003 Hummer H2 SUV", image: "img/hummer/2003-hummer-h2-suv-chumbo .jpg" },
-      { id: 6, name: "2003 Hummer H2 SUV", image: "img/hummer/2003-hummer-h2-suv-cinza.jpg" },
-      { id: 7, name: "2003 Hummer H2 SUV", image: "img/hummer/2003-hummer-h2-suv-vermelho.jpg" },
-      { id: 8, name: "2008 Hummer HX Concept", image: "img/hummer/2008-hummer-hx-concept.jpg" },
-      { id: 9, name: "Hummer H3T", image: "img/hummer/hummer-h3t-dourado.jpg" },
-      { id: 10, name: "Hummer H3T", image: "img/hummer/hummer-h3t-preto.jpg" },
-      { id: 11, name: "Humvee", image: "img/hummer/humvee01.jpg" },
-      { id: 12, name: "Humvee", image: "img/hummer/humvee02.jpg" },
+      { id: 1, name: "2001 Hummer H2 SUT", image: "img/hummer/2001-hummer-h2-sut-01.jpg" },
+      { id: 2, name: "2001 Hummer H2 SUT", image: "img/hummer/2001-hummer-h2-sut-02.jpg" },
+      { id: 3, name: "2003 Hummer H2 SUV", image: "img/hummer/2003-hummer-h2-suv-amarelo.jpg" },
+      { id: 4, name: "2003 Hummer H2 SUV", image: "img/hummer/2003-hummer-h2-suv-amarelo2.jpg" },
+      { id: 5, name: "2003 Hummer H2 SUV", image: "img/hummer/2003-hummer-h2-suv-branco.jpg" },
+      { id: 6, name: "2003 Hummer H2 SUV", image: "img/hummer/2003-hummer-h2-suv-branco-2.jpg" },
+      { id: 7, name: "2003 Hummer H2 SUV", image: "img/hummer/2003-hummer-h2-suv-chumbo .jpg" },
+      { id: 8, name: "2003 Hummer H2 SUV", image: "img/hummer/2003-hummer-h2-suv-cinza.jpg" },
+      { id: 9, name: "2003 Hummer H2 SUV", image: "img/hummer/2003-hummer-h2-suv-vermelho.jpg" },
+      { id: 10, name: "2008 Hummer HX Concept", image: "img/hummer/2008-hummer-hx-concept.jpg" },
+      { id: 11, name: "Hummer H3T", image: "img/hummer/hummer-h3t-dourado.jpg" },
+      { id: 12, name: "Hummer H3T", image: "img/hummer/hummer-h3t-preto.jpg" },
+      { id: 13, name: "Humvee", image: "img/hummer/humvee01.jpg" },
+      { id: 14, name: "Humvee", image: "img/hummer/humvee02.jpg" },
     ], 
     Jaguar: [
       { id: 1, name: "Jaguar XJ 220", image: "img/jaguar/jaguar-xj-220-01.jpg" },
@@ -433,14 +443,17 @@
       { id: 1, name: "2002 Jeep Liberty", image: "img/jeep/2002-jeep-liberty1.jpg" },
       { id: 2, name: "2002 Jeep Liberty", image: "img/jeep/2002-jeep-liberty2.jpg" },
       { id: 3, name: "2002 Jeep Liberty", image: "img/jeep/2002-jeep-liberty3.jpg" },
-      { id: 4, name: "2015 Jeep Unlimited", image: "img/jeep/2015-jeep-unlimited.jpg" },
-      { id: 5, name: "2020 Jeep Gladiator", image: "img/jeep/2020-jeep-gladiator.jpg" },
-      { id: 6, name: "Jeep Rescue", image: "img/jeep/jeep-rescue-1.jpg" },
-      { id: 7, name: "Jeep Rescue", image: "img/jeep/jeep-rescue-2.jpg" },
-      { id: 8, name: "Jeep Wrangler Sahara", image: "img/jeep/jeep-wrangler-sahara.jpg" },
-      { id: 9, name: "Jeep Grand Cherokee", image: "img/jeep/jeep-grand-cherokee.jpg" },
-      { id: 10, name: "Jeep Grand Cherokee", image: "img/jeep/jeep-grand-cherokee-0.jpg" },
-      { id: 11, name: "Jeep Jeepster", image: "img/jeep/jeep-jeepster.jpg" },
+      { id: 4, name: "2002 Jeep Liberty", image: "img/jeep/2002-jeep-liberty4.jpg" },
+      { id: 5, name: "2015 Jeep Unlimited", image: "img/jeep/2015-jeep-unlimited.jpg" },
+      { id: 6, name: "2020 Jeep Gladiator", image: "img/jeep/2020-jeep-gladiator.jpg" },
+      { id: 7, name: "Jeep Rescue", image: "img/jeep/jeep-rescue-1.jpg" },
+      { id: 8, name: "Jeep Rescue", image: "img/jeep/jeep-rescue-2.jpg" },
+      { id: 9, name: "Jeep Grand Cherokee", image: "img/jeep/jeep-grand-cherokee-01.jpg" },
+      { id: 10, name: "Jeep Grand Cherokee", image: "img/jeep/jeep-grand-cherokee-02.jpg" },
+      { id: 11, name: "Jeep Grand Cherokee", image: "img/jeep/jeep-grand-cherokee-03.jpg" },
+      { id: 12, name: "Jeep Jeepster", image: "img/jeep/jeep-jeepster.jpg" },
+      { id: 13, name: "Jeep Wrangler Sahara", image: "img/jeep/jeep-wrangler-sahara-01.jpg" },
+      { id: 14, name: "Jeep Wrangler Sahara", image: "img/jeep/jeep-wrangler-sahara-02.jpg" },
     ],
     Lamborghini: [
       { id: 1, name: "1966 Lamborghini Miura", image: "img/lambo/1966-lamborghini-miura.jpg" },
@@ -453,13 +466,14 @@
       { id: 8, name: "Lamborghini Diablo", image: "img/lambo/lamborghini-diablo-01.jpg" },
       { id: 9, name: "Lamborghini Diablo", image: "img/lambo/lamborghini-diablo-02.jpg" },
       { id: 10, name: "Lamborghini Diablo", image: "img/lambo/lamborghini-diablo-03.jpg" },
-      { id: 11, name: "Lamborghini Huracan Coupe", image: "img/lambo/lamborghini-huracan-1.jpg" },
-      { id: 12, name: "Lamborghini Huracan Coupe", image: "img/lambo/lamborghini-huracan-2.jpg" },
-      { id: 13, name: "Lamborghini Murcielago", image: "img/lambo/lamborghini-murcielago-01.jpg" },
-      { id: 14, name: "Lamborghini Murcielago", image: "img/lambo/lamborghini-murcielago-02.jpg" },
-      { id: 15, name: "Lamborghini Murcielago Police", image: "img/lambo/lamborghini-murcielago-police.jpg" },
-      { id: 16, name: "Lamborghini Revuelto", image: "img/lambo/lamborghini-revuelto.jpg" },
-      { id: 17, name: "Lamborghini Terzo Millennio", image: "img/lambo/lamborghini-terzo-millennio.jpg" },
+      { id: 11, name: "Lamborghini Diablo", image: "img/lambo/lamborghini-diablo-04.jpg" },
+      { id: 12, name: "Lamborghini Huracan Coupe", image: "img/lambo/lamborghini-huracan-1.jpg" },
+      { id: 13, name: "Lamborghini Huracan Coupe", image: "img/lambo/lamborghini-huracan-2.jpg" },
+      { id: 14, name: "Lamborghini Murcielago", image: "img/lambo/lamborghini-murcielago-01.jpg" },
+      { id: 15, name: "Lamborghini Murcielago", image: "img/lambo/lamborghini-murcielago-02.jpg" },
+      { id: 16, name: "Lamborghini Murcielago Police", image: "img/lambo/lamborghini-murcielago-police.jpg" },
+      { id: 17, name: "Lamborghini Revuelto", image: "img/lambo/lamborghini-revuelto.jpg" },
+      { id: 18, name: "Lamborghini Terzo Millennio", image: "img/lambo/lamborghini-terzo-millennio.jpg" },
     ],
     Lexus: [
       { id: 1, name: "Lexus IS 300", image: "img/lexus/lexus-is-300-amarelo.jpg" },
@@ -551,8 +565,9 @@
       { id: 19, name: "Porsche 956", image: "img/porsche/porsche-956-02.jpg" },
       { id: 20, name: "Porsche 959", image: "img/porsche/porsche-959.jpg" },
       { id: 21, name: "Porsche Cayman", image: "img/porsche/porsche-cayman-s.jpg" },
-      { id: 22, name: "Porsche Taycan Turbo S", image: "img/porsche/porsche-taycan-turbo-s-1.jpg" },
-      { id: 23, name: "Porsche Taycan Turbo S", image: "img/porsche/porsche-taycan-turbo-s-2.jpg" },
+      { id: 22, name: "Porsche Panamera Turbo", image: "img/porsche/porsche-panamera-turbo.jpg" },
+      { id: 23, name: "Porsche Taycan Turbo S", image: "img/porsche/porsche-taycan-turbo-s-1.jpg" },
+      { id: 24, name: "Porsche Taycan Turbo S", image: "img/porsche/porsche-taycan-turbo-s-2.jpg" },
     ],
     Serviço: [
       { id: 1, name: "Ambulance", image: "img/servico/ambulance-01a.jpg" },
@@ -561,31 +576,32 @@
       { id: 4, name: "Ambulance", image: "img/servico/ambulance-03.jpg" },
       { id: 5, name: "Ambulance", image: "img/servico/ambulance-04.jpg" },
       { id: 6, name: "Ambulance", image: "img/servico/ambulance-05.jpg" },
-      { id: 7, name: "Armored Van", image: "img/servico/armored-van-01.jpg" },
-      { id: 8, name: "Armored Van", image: "img/servico/armored-van-02.jpg" },
-      { id: 9, name: "Delivery Van", image: "img/servico/delivery-01.jpg" },
-      { id: 10, name: "Delivery Van", image: "img/servico/delivery-02.jpg" },
-      { id: 11, name: "Double Decker Bus", image: "img/servico/double-decker-bus-01.jpg" },
-      { id: 12, name: "Double Decker Bus", image: "img/servico/double-decker-bus-02.jpg" },
-      { id: 13, name: "Off Road Warrior", image: "img/servico/off-road-warrior-1.jpg" },
-      { id: 14, name: "Off Road Warrior", image: "img/servico/off-road-warrior-2.jpg" },
-      { id: 15, name: "Off Road Warrior", image: "img/servico/off-road-warrior-3.jpg" },
-      { id: 16, name: "Off Road Warrior", image: "img/servico/off-road-warrior-4.jpg" },
-      { id: 17, name: "Off Road Warrior", image: "img/servico/off-road-warrior-5.jpg" },
-      { id: 18, name: "Panel Van", image: "img/servico/panel-van-01.jpg" },
-      { id: 19, name: "Panel Van", image: "img/servico/panel-van-02.jpg" },
-      { id: 20, name: "Panel Van", image: "img/servico/panel-van-03.jpg" },
-      { id: 21, name: "Panel Van", image: "img/servico/panel-van-04.jpg" },
-      { id: 22, name: "School Bus", image: "img/servico/school-bus-1.jpg" },
-      { id: 23, name: "School Bus", image: "img/servico/school-bus-2.jpg" },
-      { id: 24, name: "School Bus", image: "img/servico/school-bus-3.jpg" },
-      { id: 25, name: "School Bus", image: "img/servico/school-bus-4.jpg" },
-      { id: 26, name: "Police Car", image: "img/servico/police-car.jpg" },
-      { id: 27, name: "Police Copter", image: "img/servico/police-copter-1.jpg" },
-      { id: 28, name: "Police Copter", image: "img/servico/police-copter-2.jpg" },
-      { id: 29, name: "Rescue Copter", image: "img/servico/rescue-copter.jpg" },
-      { id: 30, name: "Service Van", image: "img/servico/service-van.jpg" },
-      { id: 31, name: "Transport Van", image: "img/servico/transport-van.jpg" },
+      { id: 7, name: "Ambulance", image: "img/servico/ambulance-06.jpg" },
+      { id: 8, name: "Armored Van", image: "img/servico/armored-van-01.jpg" },
+      { id: 9, name: "Armored Van", image: "img/servico/armored-van-02.jpg" },
+      { id: 10, name: "Delivery Van", image: "img/servico/delivery-01.jpg" },
+      { id: 11, name: "Delivery Van", image: "img/servico/delivery-02.jpg" },
+      { id: 12, name: "Double Decker Bus", image: "img/servico/double-decker-bus-01.jpg" },
+      { id: 13, name: "Double Decker Bus", image: "img/servico/double-decker-bus-02.jpg" },
+      { id: 14, name: "Off Road Warrior", image: "img/servico/off-road-warrior-1.jpg" },
+      { id: 15, name: "Off Road Warrior", image: "img/servico/off-road-warrior-2.jpg" },
+      { id: 16, name: "Off Road Warrior", image: "img/servico/off-road-warrior-3.jpg" },
+      { id: 17, name: "Off Road Warrior", image: "img/servico/off-road-warrior-4.jpg" },
+      { id: 18, name: "Off Road Warrior", image: "img/servico/off-road-warrior-5.jpg" },
+      { id: 19, name: "Panel Van", image: "img/servico/panel-van-01.jpg" },
+      { id: 20, name: "Panel Van", image: "img/servico/panel-van-02.jpg" },
+      { id: 21, name: "Panel Van", image: "img/servico/panel-van-03.jpg" },
+      { id: 22, name: "Panel Van", image: "img/servico/panel-van-04.jpg" },
+      { id: 23, name: "School Bus", image: "img/servico/school-bus-1.jpg" },
+      { id: 24, name: "School Bus", image: "img/servico/school-bus-2.jpg" },
+      { id: 25, name: "School Bus", image: "img/servico/school-bus-3.jpg" },
+      { id: 26, name: "School Bus", image: "img/servico/school-bus-4.jpg" },
+      { id: 27, name: "Police Car", image: "img/servico/police-car.jpg" },
+      { id: 28, name: "Police Copter", image: "img/servico/police-copter-1.jpg" },
+      { id: 29, name: "Police Copter", image: "img/servico/police-copter-2.jpg" },
+      { id: 30, name: "Rescue Copter", image: "img/servico/rescue-copter.jpg" },
+      { id: 31, name: "Service Van", image: "img/servico/service-van.jpg" },
+      { id: 32, name: "Transport Van", image: "img/servico/transport-van.jpg" },
     ],
     Toyota: [
       { id: 1, name: "2021 Toyota Corolla", image: "img/toyota/2021-toyota-corolla.jpg" },
@@ -721,28 +737,31 @@ Trator: [
       { id: 6, name: "VW 1300", image: "img/vw/vw-1300-03.jpg" },
       { id: 7, name: "VW 1300", image: "img/vw/vw-1300-04.jpg" },
       { id: 8, name: "VW 1300", image: "img/vw/vw-1300-05.jpg" },
-      { id: 9, name: "VW Golf GTI", image: "img/vw/vw-golf-gti-01.jpg" },
-      { id: 10, name: "VW Golf GTI", image: "img/vw/vw-golf-gti-02.jpg" },
-      { id: 11, name: "VW Golf Cabriolet", image: "img/vw/vw-golf-gti-cabrio-01.jpg" },
-      { id: 12, name: "VW Golf Cabriolet", image: "img/vw/vw-golf-gti-cabrio-02.jpg" },
-      { id: 13, name: "VW Golf Cabriolet", image: "img/vw/vw-golf-gti-cabrio-03.jpg" },
-      { id: 14, name: "VW Jetta", image: "img/vw/vw-jetta-01.jpg" },
-      { id: 15, name: "VW Jetta", image: "img/vw/vw-jetta-02.jpg" },
-      { id: 16, name: "VW New Beetle", image: "img/vw/vw-new-beetle-01.jpg" },
-      { id: 17, name: "VW New Beetle", image: "img/vw/vw-new-beetle-02.jpg" },
-      { id: 18, name: "VW New Beetle", image: "img/vw/vw-new-beetle-03.jpg" },
-      { id: 19, name: "VW New Beetle", image: "img/vw/vw-new-beetle-04.jpg" },
-      { id: 20, name: "VW New Beetle", image: "img/vw/vw-new-beetle-05.jpg" },
-      { id: 21, name: "VW New Beetle Conv", image: "img/vw/vw-new-beetle-conv-01.jpg" },
-      { id: 22, name: "VW New Beetle Conv", image: "img/vw/vw-new-beetle-conv-02.jpg" },
-      { id: 23, name: "VW New Beetle Conv", image: "img/vw/vw-new-beetle-conv-03.jpg" },
-      { id: 24, name: "VW New Beetle Conv", image: "img/vw/vw-new-beetle-conv-04.jpg" },
-      { id: 25, name: "VW New Beetle Conv", image: "img/vw/vw-new-beetle-conv-05.jpg" },
-      { id: 26, name: "VW New Beetle Conv", image: "img/vw/vw-new-beetle-conv-06.jpg" },
-      { id: 27, name: "VW T2", image: "img/vw/vw-t2-lar.jpg" },
-      { id: 28, name: "VW T2", image: "img/vw/vw-t2-vc.jpg" },
-      { id: 29, name: "VW T2", image: "img/vw/vw-t2-ve.jpg" },
-      { id: 30, name: "VW Touareg 2003", image: "img/vw/vw-touareg-2003.jpg" },
+      { id: 9, name: "VW Golf GTI", image: "img/vw/vw-golf-gti.jpg" },
+      { id: 10, name: "VW Golf Cabriolet", image: "img/vw/vw-golf-gti-cabrio-01.jpg" },
+      { id: 11, name: "VW Golf Cabriolet", image: "img/vw/vw-golf-gti-cabrio-02.jpg" },
+      { id: 12, name: "VW Golf Cabriolet", image: "img/vw/vw-golf-gti-cabrio-03.jpg" },
+      { id: 13, name: "VW Golf Cabriolet", image: "img/vw/vw-golf-gti-cabrio-04.jpg" },
+      { id: 14, name: "VW Golf GTI", image: "img/vw/vw-golf-gti-mk1-01.jpg" },
+      { id: 15, name: "VW Golf GTI", image: "img/vw/vw-golf-gti-mk1-02.jpg" },
+      { id: 16, name: "VW Golf GTI", image: "img/vw/vw-golf-gti-mk1-03.jpg" },
+      { id: 17, name: "VW Jetta", image: "img/vw/vw-jetta-01.jpg" },
+      { id: 18, name: "VW Jetta", image: "img/vw/vw-jetta-02.jpg" },
+      { id: 19, name: "VW New Beetle", image: "img/vw/vw-new-beetle-01.jpg" },
+      { id: 20, name: "VW New Beetle", image: "img/vw/vw-new-beetle-02.jpg" },
+      { id: 21, name: "VW New Beetle", image: "img/vw/vw-new-beetle-03.jpg" },
+      { id: 22, name: "VW New Beetle", image: "img/vw/vw-new-beetle-04.jpg" },
+      { id: 23, name: "VW New Beetle", image: "img/vw/vw-new-beetle-05.jpg" },
+      { id: 24, name: "VW New Beetle Conv", image: "img/vw/vw-new-beetle-conv-01.jpg" },
+      { id: 25, name: "VW New Beetle Conv", image: "img/vw/vw-new-beetle-conv-02.jpg" },
+      { id: 26, name: "VW New Beetle Conv", image: "img/vw/vw-new-beetle-conv-03.jpg" },
+      { id: 27, name: "VW New Beetle Conv", image: "img/vw/vw-new-beetle-conv-04.jpg" },
+      { id: 28, name: "VW New Beetle Conv", image: "img/vw/vw-new-beetle-conv-05.jpg" },
+      { id: 29, name: "VW New Beetle Conv", image: "img/vw/vw-new-beetle-conv-06.jpg" },
+      { id: 30, name: "VW T2", image: "img/vw/vw-t2-lar.jpg" },
+      { id: 31, name: "VW T2", image: "img/vw/vw-t2-vc.jpg" },
+      { id: 32, name: "VW T2", image: "img/vw/vw-t2-ve.jpg" },
+      { id: 33, name: "VW Touareg 2003", image: "img/vw/vw-touareg-2003.jpg" },
     ],
     Outros: [
       { id: 1, name: "2007 Volvo XC 90", image: "img/outros/2007-volvo-xc-90-01.jpg" },
@@ -769,25 +788,83 @@ Trator: [
       { id: 22, name: "Smart ForTwo", image: "img/outros/smart-fortwo.jpg" },
       { id: 23, name: "Smart Roadster", image: "img/outros/smart-roadster.jpg" },
     ],
-
-   };
+  };
   const brandsList = Object.keys(initialMiniaturesByBrand).sort();
   const LOCAL_STORAGE_KEY_COLLECTION = "maistoCollectionData";
   const LOCAL_STORAGE_KEY_LOCKED = "maistoLockedData";
+
   const getInitialCollection = () => JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_COLLECTION) || "{}");
   const getInitialLockedItems = () => JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_LOCKED) || "{}");
 
+  // ===== FUNCOES GITHUB =====
+  const salvarNaNuvem = async (colecao, locked) => {
+    try {
+      await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `token ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files: {
+            [GIST_FILENAME]: {
+              content: JSON.stringify({ colecao, locked }, null, 2)
+            }
+          }
+        })
+      });
+      return true;
+    } catch(e) { console.log("Erro ao salvar na nuvem:", e); return false; }
+  }
+
+  const carregarDaNuvem = async () => {
+    try {
+      const res = await fetch(`https://api.github.com/gists/${GIST_ID}`);
+      const data = await res.json();
+      const json = JSON.parse(data.files[GIST_FILENAME].content);
+      return json;
+    } catch(e) { console.log("Erro ao carregar da nuvem:", e); return null; }
+  }
+  // =========================
+
   function App() {
-    const [view, setView] = useState('home'); // home, brand, all
+    const [view, setView] = useState('home');
     const [selectedBrand, setSelectedBrand] = useState(null);
     const [miniaturesByBrand] = useState(initialMiniaturesByBrand);
     const [collection, setCollection] = useState(getInitialCollection);
     const [lockedItems, setLockedItems] = useState(getInitialLockedItems);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filter, setFilter] = useState('all'); // 'all' or 'collected'
+    const [filter, setFilter] = useState('all');
+    const [syncStatus, setSyncStatus] = useState('Local');
 
+    // Carregar da nuvem ao iniciar
+    useEffect(() => {
+      const iniciar = async () => {
+        const dadosNuvem = await carregarDaNuvem();
+        if(dadosNuvem) {
+          const localColecao = getInitialCollection();
+          const localLocked = getInitialLockedItems();
+          // usa o que tiver mais itens
+          const totalNuvem = Object.values(dadosNuvem.colecao || {}).reduce((a,b)=>a+Object.keys(b).length,0);
+          const totalLocal = Object.values(localColecao).reduce((a,b)=>a+Object.keys(b).length,0);
+          if(totalNuvem > totalLocal) {
+            setCollection(dadosNuvem.colecao || {});
+            setLockedItems(dadosNuvem.locked || {});
+            setSyncStatus('Sincronizado');
+          }
+        }
+      }
+      iniciar();
+    }, []);
+
+    // Salvar local SEMPRE
     useEffect(() => localStorage.setItem(LOCAL_STORAGE_KEY_COLLECTION, JSON.stringify(collection)), [collection]);
     useEffect(() => localStorage.setItem(LOCAL_STORAGE_KEY_LOCKED, JSON.stringify(lockedItems)), [lockedItems]);
+
+    // Função pra sincronizar manual
+    const sincronizarAgora = async () => {
+      setSyncStatus('Sincronizando...');
+      const ok = await salvarNaNuvem(collection, lockedItems);
+      setSyncStatus(ok? 'Sincronizado' : 'Erro - Offline');
+    }
+
     useEffect(() => {
       const handlePopState = () => {
         if (view === 'brand' || view === 'all') {
@@ -800,24 +877,26 @@ Trator: [
     }, [view]);
 
     const navigate = (newView, brand = null) => {
-      history.pushState({ view: newView, brand }, '', `#${newView}${brand ? `/${brand}`: ''}`);
+      history.pushState({ view: newView, brand }, '', `#${newView}${brand? `/${brand}`: ''}`);
       setView(newView);
-      setSelectedBrand(brand ? { brand } : null);
+      setSelectedBrand(brand? { brand } : null);
     };
 
     const handleGoBack = () => history.back();
 
     const toggleMiniature = useCallback((brand, id) => {
       setCollection(prev => {
-        const updated = { ...prev };
-        const brandData = { ...updated[brand] };
-        brandData[id] = !brandData[id];
+        const updated = {...prev };
+        const brandData = {...updated[brand] };
+        brandData[id] =!brandData[id];
         if (!brandData[id]) delete brandData[id];
         if (Object.keys(brandData).length === 0) delete updated[brand];
         else updated[brand] = brandData;
+        // salva na nuvem 2s depois de clicar
+        setTimeout(() => salvarNaNuvem(updated, lockedItems), 2000);
         return updated;
       });
-    }, []);
+    }, [lockedItems]);
 
     const totalMiniaturesCount = useMemo(() => Object.values(miniaturesByBrand).reduce((acc, current) => acc + current.length, 0), [miniaturesByBrand]);
     const totalCollectedCount = useMemo(() => Object.values(collection).reduce((acc, brand) => acc + Object.keys(brand).length, 0), [collection]);
@@ -826,51 +905,45 @@ Trator: [
 
     const toggleLockAllBrands = useCallback(() => {
         setLockedItems(prev => {
-            if (areAllLocked) return {};
-            const newLockedItems = {};
-            for (const brand in miniaturesByBrand) {
-                const brandLocks = {};
-                miniaturesByBrand[brand].forEach(mini => { brandLocks[mini.id] = true; });
-                newLockedItems[brand] = brandLocks;
+            let newLockedItems;
+            if (areAllLocked) newLockedItems = {};
+            else {
+              newLockedItems = {};
+              for (const brand in miniaturesByBrand) {
+                  const brandLocks = {};
+                  miniaturesByBrand[brand].forEach(mini => { brandLocks[mini.id] = true; });
+                  newLockedItems[brand] = brandLocks;
+              }
             }
+            setTimeout(() => salvarNaNuvem(collection, newLockedItems), 2000);
             return newLockedItems;
         });
-    }, [miniaturesByBrand, areAllLocked]);
+    }, [miniaturesByBrand, areAllLocked, collection]);
 
     const allMiniaturesList = useMemo(() => {
         return Object.entries(miniaturesByBrand).flatMap(([brand, minis]) =>
-            minis.map(mini => ({ ...mini, brand }))
+            minis.map(mini => ({...mini, brand }))
         );
     }, [miniaturesByBrand]);
 
     const filteredMiniatures = useMemo(() => {
         return allMiniaturesList
-            .filter(mini => {
+           .filter(mini => {
                 const isCollected = collection[mini.brand]?.[mini.id];
                 return filter === 'all' || (filter === 'collected' && isCollected);
             })
-            .filter(mini => mini.name.toLowerCase().includes(searchTerm.toLowerCase()));
+           .filter(mini => mini.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }, [allMiniaturesList, collection, filter, searchTerm]);
 
-
-
-// ... (código anterior omitido por brevidade)
-
-// CORREÇÃO: Função exportToPDF com cálculo de proporção e espaçamento
     const exportToPDF = async () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-
         doc.setFontSize(18);
-        
         const pageWidth = doc.internal.pageSize.getWidth();
-        const titleHeight = 22; 
+        const titleHeight = 22;
         doc.text("Relatório da Coleção Maisto", pageWidth / 2, titleHeight, { align: 'center' });
-
         doc.setFontSize(7);
         doc.setTextColor(100);
-
-        // MUDANÇA: Esta função agora retorna um objeto com { dataUrl, width, height }
         const loadImageAsBase64 = (url) => {
             return new Promise((resolve, reject) => {
                 const img = new Image();
@@ -881,77 +954,39 @@ Trator: [
                     canvas.height = img.height;
                     const ctx = canvas.getContext("2d");
                     ctx.drawImage(img, 0, 0);
-                    // Resolve com um objeto contendo a URL e as dimensões originais
-                    resolve({
-                        dataUrl: canvas.toDataURL("image/jpeg"),
-                        width: img.width,
-                        height: img.height
-                    });
+                    resolve({ dataUrl: canvas.toDataURL("image/jpeg"), width: img.width, height: img.height });
                 };
-                img.onerror = (e) => {
-                    console.error("Falha ao carregar imagem:", url, e);
-                    // Resolve com dataUrl nula em caso de erro
-                    resolve({ dataUrl: null });
-                };
+                img.onerror = (e) => { resolve({ dataUrl: null }); };
                 img.src = url;
             });
         };
-
-        // Y inicial na PRIMEIRA PÁGINA: 30
-        let y = 30; 
-        const pageHeight = 280; 
-        const columns = 5; 
-        const margin = 5; 
-        const totalWidth = doc.internal.pageSize.getWidth() - 2 * margin; 
-        const columnWidth = totalWidth / columns; // Largura total da coluna
-        const imageWidth = columnWidth - 2; // Largura MÁXIMA para imagem/placeholder
-        const imageHeight = 12; // Altura FIXA da imagem (conforme solicitado)
-
-        // SUGESTÃO/MUDANÇA: Aumentei o textSpace de 8 para 12.
-        // Isso dá mais espaço vertical para o nome e o status, evitando que
-        // o texto de uma linha sobreponha a imagem da linha de baixo.
-        const textSpace = 12; // Era 8
-        const spacing = 10; 
-        const itemHeight = imageHeight + textSpace + spacing; // Altura total do item
-        
+        let y = 30;
+        const pageHeight = 280;
+        const columns = 5;
+        const margin = 5;
+        const totalWidth = doc.internal.pageSize.getWidth() - 2 * margin;
+        const columnWidth = totalWidth / columns;
+        const imageWidth = columnWidth - 2;
+        const imageHeight = 12;
+        const textSpace = 12;
+        const spacing = 10;
+        const itemHeight = imageHeight + textSpace + spacing;
         for (let i = 0; i < filteredMiniatures.length; i += columns) {
-            // Quebra de página
-            if (y + itemHeight > pageHeight - margin) { 
-                doc.addPage();
-                // Y na SEGUNDA PÁGINA (e seguintes): Reseta para a margem superior
-                y = margin; 
-            }
-
+            if (y + itemHeight > pageHeight - margin) { doc.addPage(); y = margin; }
             for (let j = 0; j < columns; j++) {
                 const index = i + j;
                 if (index >= filteredMiniatures.length) break;
-
                 const mini = filteredMiniatures[index];
-                // 'x' agora marca o INÍCIO da célula da coluna
-                const x = margin + j * columnWidth + 1; 
-
-                // 1. Imagem
+                const x = margin + j * columnWidth + 1;
                 try {
-                    // MUDANÇA: Recebemos o objeto { dataUrl, width, height }
                     const imgResult = await loadImageAsBase64(mini.image);
-                    
                     if (imgResult && imgResult.dataUrl) {
-                        // MUDANÇA: Cálculo de proporção
-                        // Calculamos a largura que a imagem DEVE TER para ter 12 de altura
                         const originalWidth = imgResult.width;
                         const originalHeight = imgResult.height;
                         const calculatedWidth = (originalWidth * imageHeight) / originalHeight;
-
-                        // MUDANÇA: Centralização da Imagem
-                        // Para centralizar, pegamos o centro da coluna (x + columnWidth / 2)
-                        // e subtraímos metade da largura calculada da imagem.
                         const imageX = (x + (columnWidth / 2)) - (calculatedWidth / 2);
-
-                        // Usamos imageX, y, a largura calculada e a altura fixa
                         doc.addImage(imgResult.dataUrl, 'JPEG', imageX, y, calculatedWidth, imageHeight);
-                    
                     } else {
-                        // O placeholder continua usando 'x' e 'imageWidth' para preencher a coluna
                         doc.setFillColor(230, 230, 230);
                         doc.rect(x, y, imageWidth, imageHeight, 'F');
                         doc.setTextColor(150);
@@ -965,35 +1000,22 @@ Trator: [
                     doc.text("Erro IMG", x + imageWidth / 2, y + imageHeight / 2, { align: 'center', baseline: 'middle' });
                     doc.setTextColor(100);
                 }
-
-                // 2. Texto
-                const status = collection[mini.brand]?.[mini.id] ? "Tenho: SIM" : "Tenho: NAO";
+                const status = collection[mini.brand]?.[mini.id]? "Tenho: SIM" : "Tenho: NAO";
                 const line1 = mini.name;
-                
-                // O texto é quebrado usando a largura da coluna (imageWidth)
                 const textLines = doc.splitTextToSize(line1, imageWidth);
-                
-                // MUDANÇA: Aumentei o espaçamento de +1 para +4
-                // Isso desce o texto para não colar na imagem.
-                const textY = y + imageHeight + 4; // Era +1
-                
-                // O texto é posicionado no início da coluna ('x')
+                const textY = y + imageHeight + 4;
                 doc.text(textLines, x, textY);
-                doc.text(status, x, textY + (textLines.length * 3.2)); 
+                doc.text(status, x, textY + (textLines.length * 3.2));
             }
-            
-            // Avança para a próxima linha vertical
             y += itemHeight;
         }
-
         doc.save("colecao_maisto.pdf");
     };
 
-   
     const BackgroundWrapper = ({ children }) => (
-      <div className="min-h-screen bg-cover bg-center flex flex-col items-center justify-start text-white p-4"
+      <div className="min-h-screen bg-cover bg-center flex-col items-center justify-start text-white p-4"
         style={{ backgroundImage: "url('img/alemed.jpg')", backgroundAttachment: "fixed" }}>
-        <div className="relative bg-black/70 w-full h-full flex flex-col items-center justify-start p-6 rounded-xl max-w-6xl mx-auto shadow-2xl min-h-[90vh] md:min-h-[95vh]">
+        <div className="relative bg-black/70 w-full h-full flex-col items-center justify-start p-6 rounded-xl max-w-6xl mx-auto shadow-2xl min-h-[90vh] md:min-h-[95vh]">
           {children}
         </div>
       </div>
@@ -1008,14 +1030,17 @@ Trator: [
               Voltar
             </button>
             <h1 className="text-3xl font-extrabold text-purple-400">Todas as Miniaturas</h1>
-            <div/>
+            <div className="flex gap-2">
+              <span className="text-xs px-2 py-1 bg-black/50 rounded">{syncStatus}</span>
+              <button onClick={sincronizarAgora} className="text-xs px-2 py-1 bg-blue-600 rounded">Sync</button>
+            </div>
           </div>
 
           <div className="w-full flex flex-col md:flex-row gap-4 mb-6">
-            <input type="text" placeholder="Buscar por nome..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="flex-grow p-2 rounded-lg bg-white/20 border border-purple-400/50 focus:ring-purple-500 focus:border-purple-500"/>
+            <input type="text" placeholder="Buscar por nome..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="flex-grow p-2 rounded-lg bg-white/20 border-purple-400/50 focus:ring-purple-500 focus:border-purple-500"/>
             <div className="flex gap-2">
-              <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded-lg font-semibold ${filter === 'all' ? 'bg-purple-600' : 'bg-white/10'}`}>Todas</button>
-              <button onClick={() => setFilter('collected')} className={`px-4 py-2 rounded-lg font-semibold ${filter === 'collected' ? 'bg-purple-600' : 'bg-white/10'}`}>Minha Coleção</button>
+              <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded-lg font-semibold ${filter === 'all'? 'bg-purple-600' : 'bg-white/10'}`}>Todas</button>
+              <button onClick={() => setFilter('collected')} className={`px-4 py-2 rounded-lg font-semibold ${filter === 'collected'? 'bg-purple-600' : 'bg-white/10'}`}>Minha Coleção</button>
             </div>
             <button onClick={exportToPDF} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold">Exportar para PDF</button>
           </div>
@@ -1025,13 +1050,13 @@ Trator: [
               const isCollected = collection[mini.brand]?.[mini.id];
               const isLocked = lockedItems[mini.brand]?.[mini.id];
               return (
-                <div key={`${mini.brand}-${mini.id}`} className={"bg-white shadow-xl rounded-xl p-3 flex flex-col items-center justify-between " + (isCollected ? "collected-card" : "border border-gray-200")}>
+                <div key={`${mini.brand}-${mini.id}`} className={"bg-white shadow-xl rounded-xl p-3 flex-col items-center justify-between " + (isCollected? "collected-card" : "border border-gray-200")}>
                   <div className="w-full h-[120px] bg-gray-200 rounded-lg mb-2 flex items-center justify-center overflow-hidden">
                     <img src={mini.image} alt={mini.name} className="object-contain w-full h-full rounded-lg" onError={e => e.target.src = 'https://placehold.co/225x120/f3f4f6/333?text=ERRO+IMG'} />
                   </div>
                   <p className="text-gray-800 text-xs sm:text-sm font-semibold text-center mt-1 mb-2">{mini.name}</p>
                   <p className="text-gray-500 text-xs font-medium mb-2">{mini.brand}</p>
-                  <label onClick={!isLocked ? () => toggleMiniature(mini.brand, mini.id) : undefined} className={"flex w-full justify-center gap-2 text-gray-800 text-sm font-medium p-2 rounded-lg " + (isLocked ? "bg-gray-200 cursor-not-allowed opacity-70" : "bg-gray-100 hover:bg-gray-200 cursor-pointer")}>
+                  <label onClick={!isLocked? () => toggleMiniature(mini.brand, mini.id) : undefined} className={"flex w-full justify-center gap-2 text-gray-800 text-sm font-medium p-2 rounded-lg " + (isLocked? "bg-gray-200 cursor-not-allowed opacity-70" : "bg-gray-100 hover:bg-gray-200 cursor-pointer")}>
                     <input type="checkbox" checked={!!isCollected} disabled={isLocked} readOnly className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500" /> Tenho
                   </label>
                 </div>
@@ -1054,8 +1079,12 @@ Trator: [
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
               Voltar
             </button>
-            <button onClick={toggleLockAllBrands} className={(areAllLocked ? "bg-red-600 hover:bg-red-700" : "bg-gray-200 text-gray-800 hover:bg-gray-300") + " px-4 py-2 text-sm font-semibold rounded-lg shadow-lg transition"}>
-              {areAllLocked ? 'Desbloquear Tudo' : 'Bloquear Tudo'}
+            <div className="flex gap-2">
+              <span className="text-xs px-2 py-1 bg-black/50 rounded">{syncStatus}</span>
+              <button onClick={sincronizarAgora} className="text-xs px-2 py-1 bg-blue-600 rounded">Sync</button>
+            </div>
+            <button onClick={toggleLockAllBrands} className={(areAllLocked? "bg-red-600 hover:bg-red-700" : "bg-gray-200 text-gray-800 hover:bg-gray-300") + " px-4 py-2 text-sm font-semibold rounded-lg shadow-lg transition"}>
+              {areAllLocked? 'Desbloquear Tudo' : 'Bloquear Tudo'}
             </button>
           </div>
           <h2 className="text-4xl font-extrabold text-purple-400 mb-6 text-center">Coleção Maisto - {brand}</h2>
@@ -1064,12 +1093,12 @@ Trator: [
               const isCollected = currentCollection[mini.id];
               const isLocked = currentLocked[mini.id];
               return (
-                <div key={mini.id} className={"bg-white shadow-xl rounded-xl p-3 flex flex-col items-center justify-between " + (isCollected ? "collected-card" : "border border-gray-200")}>
+                <div key={mini.id} className={"bg-white shadow-xl rounded-xl p-3 flex-col items-center justify-between " + (isCollected? "collected-card" : "border border-gray-200")}>
                   <div className="w-full h-[120px] bg-gray-200 rounded-lg mb-2 flex items-center justify-center overflow-hidden">
                     <img src={mini.image} alt={mini.name} className="object-contain w-full h-full rounded-lg" onError={e => e.target.src = 'https://placehold.co/225x120/f3f4f6/333?text=ERRO+IMG'} />
                   </div>
                   <p className="text-gray-800 text-xs sm:text-sm font-semibold text-center mt-1 mb-2">{mini.name}</p>
-                  <label onClick={!isLocked ? () => toggleMiniature(brand, mini.id) : undefined} className={"flex w-full justify-center gap-2 text-gray-800 text-sm font-medium p-2 rounded-lg " + (isLocked ? "bg-gray-200 cursor-not-allowed opacity-70" : "bg-gray-100 hover:bg-gray-200 cursor-pointer")}>
+                  <label onClick={!isLocked? () => toggleMiniature(brand, mini.id) : undefined} className={"flex w-full justify-center gap-2 text-gray-800 text-sm font-medium p-2 rounded-lg " + (isLocked? "bg-gray-200 cursor-not-allowed opacity-70" : "bg-gray-100 hover:bg-gray-200 cursor-pointer")}>
                     <input type="checkbox" checked={!!isCollected} disabled={isLocked} readOnly className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500" /> Tenho
                   </label>
                 </div>
@@ -1080,7 +1109,6 @@ Trator: [
       );
     }
 
-     // Home view
     return (
       <BackgroundWrapper>
         <div className="w-full relative text-center mb-4">
@@ -1091,13 +1119,7 @@ Trator: [
           </div>
         </div>
         <p className="text-2xl text-center text-gray-400">Selecione a marca para visualizar sua coleção.</p>
-        
-{/* NOVA LINHA SEPARADORA AQUI */}
-{/*      <div className="w-full border-t border-gray-500/50 mb-8 max-w-5xl"></div>  */}
-
- {/* SEPARADOR INVISÍVEL AQUI: Cria um espaço vertical de mb-8. */}
         <div className="w-full h-0 mb-8 max-w-5xl"></div>
-
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full max-w-5xl">
           {brandsList.map((brand) => {
             const totalInBrand = miniaturesByBrand[brand]?.length || 0;
@@ -1110,13 +1132,13 @@ Trator: [
             )
           })}
         </div>
-
-         {/* SEPARADOR INVISÍVEL AQUI: Cria um espaço vertical de mb-8. */}
         <div className="w-full h-0 mb-8 max-w-5xl"></div>
-
-        <div className="absolute bottom-6 right-6">
+        <div className="absolute bottom-6 right-6 flex gap-2">
+            <button onClick={sincronizarAgora} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold shadow-lg">
+                Sincronizar
+            </button>
             <button onClick={() => navigate('all')} className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold shadow-lg">
-                Ver Todas as Miniaturas
+                Ver Todas
             </button>
         </div>
       </BackgroundWrapper>
