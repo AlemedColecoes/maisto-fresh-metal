@@ -35,7 +35,7 @@
   const { useState, useEffect, useCallback, useMemo } = React;
 
   // ===== CONFIG GITHUB =====
-  const GIST_ID = "18497a472c5e73107148945c5b000ad7"
+  const GIST_ID = "d8eef4e445465f87fcd9c90c5ea597d2"
   const TOKEN = "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"
   const GIST_FILENAME = "colecao_maisto.json"
   // =========================
@@ -796,11 +796,10 @@ Trator: [
   const getInitialCollection = () => JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_COLLECTION) || "{}");
   const getInitialLockedItems = () => JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_LOCKED) || "{}");
 
-  // ===== FUNCOES GITHUB =====
 // ===== FUNCOES GITHUB =====
-  const salvarNaNuvem = async (colecao, locked) => {
+  const salvarNaNuvem = async (colecao, locked, setStatus) => {
     try {
-      await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
         method: 'PATCH',
         headers: { 'Authorization': `token ${TOKEN}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -809,11 +808,12 @@ Trator: [
           }
         })
       });
-      setSyncStatus('Sincronizado');
+      if(!res.ok) throw new Error("HTTP " + res.status); // pra pegar o 401
+      setStatus('Sincronizado');
       return true;
     } catch(e) {
       console.log("Erro ao salvar na nuvem:", e);
-      setSyncStatus('Erro - Offline');
+      setStatus('Erro 401: Token');
       return false;
     }
   }
@@ -821,6 +821,7 @@ Trator: [
   const carregarDaNuvem = async () => {
     try {
       const res = await fetch(`https://api.github.com/gists/${GIST_ID}`);
+      if(!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       const json = JSON.parse(data.files[GIST_FILENAME].content);
       return json;
@@ -832,22 +833,18 @@ Trator: [
 
   const sincronizarAgora = async () => {
     setSyncStatus('Sincronizando...');
+    console.log("Iniciando sync...");
 
-    // 1. BAIXA o que tá na nuvem
     const dadosNuvem = await carregarDaNuvem();
-
-    // 2. PEGA o que tá local
     const dadosLocal = {
       colecao: JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_COLLECTION) || "{}"),
       locked: JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_LOCKED) || "{}")
     };
 
     if(dadosNuvem) {
-      // 3. JUNTA os dois - se tiver no PC ou no Celular, fica com os dois
       const colecaoJunta = {...dadosLocal.colecao };
       const lockedJunta = {...dadosLocal.locked };
 
-      // pega tudo da nuvem e joga pro local
       for(const brand in dadosNuvem.colecao) {
         colecaoJunta[brand] = {...colecaoJunta[brand],...dadosNuvem.colecao[brand] }
       }
@@ -855,14 +852,14 @@ Trator: [
         lockedJunta[brand] = {...lockedJunta[brand],...dadosNuvem.locked[brand] }
       }
 
-      // 4. ATUALIZA a tela e salva local
       setCollection(colecaoJunta);
       setLockedItems(lockedJunta);
       localStorage.setItem(LOCAL_STORAGE_KEY_COLLECTION, JSON.stringify(colecaoJunta));
       localStorage.setItem(LOCAL_STORAGE_KEY_LOCKED, JSON.stringify(lockedJunta));
 
-      // 5. ENVIA de volta pra nuvem pra ficar igual nos 2 lados
-      await salvarNaNuvem(colecaoJunta, lockedJunta);
+      await salvarNaNuvem(colecaoJunta, lockedJunta, setSyncStatus); // <-- passei o setStatus
+    } else {
+      setSyncStatus('Erro: Gist vazio');
     }
   }
   // =========================
@@ -936,7 +933,7 @@ Trator: [
         if (Object.keys(brandData).length === 0) delete updated[brand];
         else updated[brand] = brandData;
         // salva na nuvem 2s depois de clicar
-        setTimeout(() => salvarNaNuvem(updated, lockedItems), 2000);
+        setTimeout(() => salvarNaNuvem(updated, lockedItems, setSyncStatus), 2000);
         return updated;
       });
     }, [lockedItems]);
@@ -958,7 +955,7 @@ Trator: [
                   newLockedItems[brand] = brandLocks;
               }
             }
-            setTimeout(() => salvarNaNuvem(collection, newLockedItems), 2000);
+            setTimeout(() => salvarNaNuvem(updated, lockedItems, setSyncStatus), 2000);
             return newLockedItems;
         });
     }, [miniaturesByBrand, areAllLocked, collection]);
