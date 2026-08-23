@@ -28,6 +28,9 @@
   <script src="libs/jspdf.js"></script>
   <script src="libs/dexie.js"></script>
 
+  <!-- Biblioteca Dexie.js para salvar no banco local -->
+  <script src="https://unpkg.com"></script>
+
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -40,29 +43,12 @@
 <script type="text/babel">
   const { useState, useEffect, useCallback, useMemo } = React;
 
-  // =========================
-  // SUPABASE
-  // =========================
+  // Supabase
   const SUPABASE_URL = 'https://yhabiubvjqnblmulhpot.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_dvH5rCozoNrIqdyzKmrunA_oFWWRLjc';
   const SUPABASE_TABLE = 'colecao_maisto';
-  const SUPABASE_ROW_ID = 1;
-
-  // Inicializa o Supabase somente se a biblioteca tiver carregado.
-  // Se o Supabase estiver indisponível, o aplicativo continua funcionando
-  // normalmente usando o armazenamento local (IndexedDB).
-  let supabaseClient = null;
-  try {
-    if (window.supabase && typeof window.supabase.createClient === 'function') {
-      supabaseClient = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-      );
-    }
-  } catch (e) {
-    console.warn('Supabase indisponível. O aplicativo continuará em modo local.', e);
-    supabaseClient = null;
-  }
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  window.supabaseClient = supabaseClient;
 
   // Inicialização do Banco de Dados local do Aparelho (IndexedDB)
   const db = new Dexie("MaistoDatabase");
@@ -848,114 +834,116 @@ Trator: [
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState('all'); 
     const [loading, setLoading] = useState(true);
-    const [syncStatus, setSyncStatus] = useState('Carregando...');
-    const [cloudLoaded, setCloudLoaded] = useState(false);
+    const [user, setUser] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true);
+    const [authEmail, setAuthEmail] = useState('');
+    const [authPassword, setAuthPassword] = useState('');
+    const [authError, setAuthError] = useState('');
+    const [syncStatus, setSyncStatus] = useState('Preparando...');
 
-    // Carrega primeiro o banco local e depois tenta sincronizar com o Supabase.
-    useEffect(() => {
-      let ativo = true;
-
-      async function carregarDados() {
-        try {
-          const dadosColecaoLocal = await db.estadoApp.get("colecao");
-          const dadosTravadosLocal = await db.estadoApp.get("travados");
-
-          if (dadosColecaoLocal?.valor) setCollection(dadosColecaoLocal.valor);
-          if (dadosTravadosLocal?.valor) setLockedItems(dadosTravadosLocal.valor);
-
-          if (!supabaseClient) {
-            if (ativo) setSyncStatus('Modo local — Supabase não carregado');
-            return;
-          }
-
-          setSyncStatus('Conectando ao Supabase...');
-
-          const { data, error } = await supabaseClient
-            .from(SUPABASE_TABLE)
-            .select('id, collection, locked_items, updated_at')
-            .eq('id', SUPABASE_ROW_ID)
-            .maybeSingle();
-
-          if (error) throw error;
-
-          if (data) {
-            if (data.collection && typeof data.collection === 'object') {
-              setCollection(data.collection);
-              await db.estadoApp.put({ chave: "colecao", valor: data.collection });
-            }
-            if (data.locked_items && typeof data.locked_items === 'object') {
-              setLockedItems(data.locked_items);
-              await db.estadoApp.put({ chave: "travados", valor: data.locked_items });
-            }
-            if (ativo) {
-              setCloudLoaded(true);
-              setSyncStatus('Sincronizado com Supabase');
-            }
-          } else {
-            const localCollection = dadosColecaoLocal?.valor || {};
-            const localLocked = dadosTravadosLocal?.valor || {};
-            const { error: insertError } = await supabaseClient
-              .from(SUPABASE_TABLE)
-              .insert({
-                id: SUPABASE_ROW_ID,
-                collection: localCollection,
-                locked_items: localLocked,
-                updated_at: new Date().toISOString()
-              });
-            if (insertError) throw insertError;
-            if (ativo) {
-              setCloudLoaded(true);
-              setSyncStatus('Sincronizado com Supabase');
-            }
-          }
-        } catch (error) {
-          console.error('Erro na sincronização com Supabase:', error);
-          if (ativo) {
-            setCloudLoaded(false);
-            setSyncStatus('Modo local — Supabase não conectado');
-          }
-        } finally {
-          if (ativo) setLoading(false);
-        }
-      }
-
-      carregarDados();
-      return () => { ativo = false; };
+    const collectionFromRows = useCallback((rows) => {
+      const result = {};
+      (rows || []).forEach(row => {
+        if (!result[row.brand]) result[row.brand] = {};
+        result[row.brand][String(row.mini_id)] = true;
+      });
+      return result;
     }, []);
 
-    // Salva sempre uma cópia local.
+    const rowsFromCollection = useCallback((data) => {
+      const rows = [];
+      Object.entries(data || {}).forEach(([brand, minis]) => {
+        Object.keys(minis || {}).forEach(miniId => {
+          rows.push({ brand, mini_id: Number(miniId) });
+        });
+      });
+      return rows;
+    }, []);
+
+    const carregarColecaoNuvem = useCallback(async (currentUser) => {
+      if (!currentUser) return;
+      setSyncStatus('Sincronizando com o Supabase...');
+
+      const { data, error } = await supabaseClient
+        .from(SUPABASE_TABLE)
+        .select('brand, mini_id')
+        .eq('user_id', currentUser.id);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const cloudCollection = collectionFromRows(data);
+        setCollection(cloudCollection);
+        await db.estadoApp.put({ chave: 'colecao', valor: cloudCollection });
+        setSyncStatus(`Nuvem sincronizada — ${data.length} miniatura(s)`);
+      } else {
+        // Primeira sincronização: se já houver coleção local, envia-a para a nuvem.
+        const local = await db.estadoApp.get('colecao');
+        const localCollection = local?.valor || {};
+        const rows = rowsFromCollection(localCollection).map(row => ({ ...row, user_id: currentUser.id }));
+        if (rows.length) {
+          const { error: insertError } = await supabaseClient.from(SUPABASE_TABLE).insert(rows);
+          if (insertError) throw insertError;
+        }
+        setCollection(localCollection);
+        setSyncStatus(rows.length ? `Coleção local enviada — ${rows.length} miniatura(s)` : 'Supabase conectado — coleção vazia');
+      }
+    }, [collectionFromRows, rowsFromCollection]);
+
+    // Carrega o banco local e identifica a sessão do Supabase.
     useEffect(() => {
-      if (!loading) db.estadoApp.put({ chave: "colecao", valor: collection });
+      let ativo = true;
+      async function iniciar() {
+        try {
+          const [dadosColecao, dadosTravados, sessionResult] = await Promise.all([
+            db.estadoApp.get('colecao'),
+            db.estadoApp.get('travados'),
+            supabaseClient.auth.getSession()
+          ]);
+          if (dadosColecao?.valor) setCollection(dadosColecao.valor);
+          if (dadosTravados?.valor) setLockedItems(dadosTravados.valor);
+          if (sessionResult.error) throw sessionResult.error;
+          if (ativo) setUser(sessionResult.data.session?.user || null);
+        } catch (error) {
+          console.error('Erro ao iniciar:', error);
+          if (ativo) setAuthError('Não foi possível iniciar a conexão com o Supabase.');
+        } finally {
+          if (ativo) { setLoading(false); setAuthLoading(false); }
+        }
+      }
+      iniciar();
+
+      const { data: listener } = supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+        if (!ativo) return;
+        const currentUser = session?.user || null;
+        setUser(currentUser);
+        if (currentUser) {
+          try { await carregarColecaoNuvem(currentUser); }
+          catch (error) { console.error('Erro ao sincronizar:', error); setSyncStatus(`Erro de sincronização: ${error.message}`); }
+        } else {
+          setSyncStatus('Faça login para sincronizar sua coleção.');
+        }
+      });
+
+      return () => {
+        ativo = false;
+        listener?.subscription?.unsubscribe();
+      };
+    }, [carregarColecaoNuvem]);
+
+    // Salva a coleção no banco local automaticamente
+    useEffect(() => {
+      if (!loading) {
+        db.estadoApp.put({ chave: "colecao", valor: collection });
+      }
     }, [collection, loading]);
 
+    // Salva os itens bloqueados no banco local automaticamente
     useEffect(() => {
-      if (!loading) db.estadoApp.put({ chave: "travados", valor: lockedItems });
+      if (!loading) {
+        db.estadoApp.put({ chave: "travados", valor: lockedItems });
+      }
     }, [lockedItems, loading]);
-
-    // Sincroniza alterações com o Supabase, com pequeno atraso para evitar excesso de gravações.
-    useEffect(() => {
-      if (loading || !cloudLoaded || !supabaseClient) return;
-
-      const timer = setTimeout(async () => {
-        try {
-          setSyncStatus('Salvando no Supabase...');
-          const { error } = await supabaseClient
-            .from(SUPABASE_TABLE)
-            .upsert({
-              id: SUPABASE_ROW_ID,
-              collection,
-              locked_items: lockedItems,
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'id' });
-          if (error) throw error;
-          setSyncStatus('Sincronizado com Supabase');
-        } catch (error) {
-          console.error('Erro ao salvar no Supabase:', error);
-          setSyncStatus('Erro ao sincronizar — dados locais preservados');
-        }
-      }, 700);
-      return () => clearTimeout(timer);
-    }, [collection, lockedItems, loading, cloudLoaded]);
 
     useEffect(() => {
       const handlePopState = () => {
@@ -976,17 +964,91 @@ Trator: [
 
     const handleGoBack = () => history.back();
 
-    const toggleMiniature = useCallback((brand, id) => {
+    const toggleMiniature = useCallback(async (brand, id) => {
+      if (!user) {
+        setAuthError('Faça login para alterar sua coleção.');
+        return;
+      }
+
+      const currentlyCollected = !!collection[brand]?.[id];
+      const nextValue = !currentlyCollected;
+      setSyncStatus('Salvando...');
+
+      // Atualiza a interface/local imediatamente.
       setCollection(prev => {
         const updated = { ...prev };
         const brandData = { ...updated[brand] };
-        brandData[id] = !brandData[id];
-        if (!brandData[id]) delete brandData[id];
+        if (nextValue) brandData[id] = true;
+        else delete brandData[id];
         if (Object.keys(brandData).length === 0) delete updated[brand];
         else updated[brand] = brandData;
         return updated;
       });
-    }, []);
+
+      try {
+        if (nextValue) {
+          const { error } = await supabaseClient.from(SUPABASE_TABLE).insert({
+            user_id: user.id,
+            brand,
+            mini_id: Number(id)
+          });
+          if (error) throw error;
+        } else {
+          const { error } = await supabaseClient
+            .from(SUPABASE_TABLE)
+            .delete()
+            .eq('user_id', user.id)
+            .eq('brand', brand)
+            .eq('mini_id', Number(id));
+          if (error) throw error;
+        }
+        setSyncStatus('Salvo no Supabase ✓');
+      } catch (error) {
+        console.error('Erro ao salvar no Supabase:', error);
+        // Reverte a alteração local se a nuvem recusou a operação.
+        setCollection(prev => {
+          const reverted = { ...prev };
+          const brandData = { ...reverted[brand] };
+          if (currentlyCollected) brandData[id] = true;
+          else delete brandData[id];
+          if (Object.keys(brandData).length === 0) delete reverted[brand];
+          else reverted[brand] = brandData;
+          return reverted;
+        });
+        setSyncStatus('Erro ao salvar no Supabase');
+        setAuthError(error.message || 'Erro ao sincronizar.');
+      }
+    }, [user, collection]);
+
+    const handleLogin = async (event) => {
+      event.preventDefault();
+      setAuthError('');
+      setSyncStatus('Entrando...');
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: authEmail.trim(),
+        password: authPassword
+      });
+      if (error) {
+        setAuthError(error.message === 'Invalid login credentials' ? 'E-mail ou senha inválidos.' : error.message);
+        setSyncStatus('Login não realizado');
+        return;
+      }
+      setAuthPassword('');
+      setUser(data.user);
+      try {
+        await carregarColecaoNuvem(data.user);
+        setAuthError('');
+      } catch (error) {
+        console.error(error);
+        setAuthError(error.message || 'Erro ao carregar a coleção.');
+      }
+    };
+
+    const handleLogout = async () => {
+      await supabaseClient.auth.signOut();
+      setUser(null);
+      setSyncStatus('Sessão encerrada');
+    };
 
     const totalMiniaturesCount = useMemo(() => Object.values(miniaturesByBrand).reduce((acc, current) => acc + current.length, 0), [miniaturesByBrand]);
     const totalCollectedCount = useMemo(() => Object.values(collection).reduce((acc, brand) => acc + Object.keys(brand).length, 0), [collection]);
@@ -1133,10 +1195,26 @@ Trator: [
       </div>
     );
 
-    if (loading) {
+    if (loading || authLoading) {
       return (
         <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white text-xl font-bold">
           Carregando dados da coleção Maisto...
+        </div>
+      );
+    }
+
+    if (!user) {
+      return (
+        <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 text-white">
+          <form onSubmit={handleLogin} className="w-full max-w-md bg-black/70 rounded-2xl p-8 shadow-2xl border border-purple-500/40">
+            <h1 className="text-4xl font-extrabold text-purple-300 text-center mb-3">Coleção Maisto</h1>
+            <p className="text-gray-300 text-center mb-6">Entre para sincronizar sua coleção com o Supabase.</p>
+            <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="E-mail" required autoComplete="email" className="w-full mb-3 p-3 rounded-lg text-gray-900" />
+            <input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} placeholder="Senha" required autoComplete="current-password" className="w-full mb-3 p-3 rounded-lg text-gray-900" />
+            {authError && <p className="text-red-400 text-sm mb-3 text-center">{authError}</p>}
+            <button type="submit" className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold transition">Entrar</button>
+            <p className="text-gray-400 text-xs text-center mt-4">{syncStatus}</p>
+          </form>
         </div>
       );
     }
@@ -1229,6 +1307,8 @@ Trator: [
           <div className="text-right w-full md:w-auto mt-4 md:mt-0">
             <h2 className="font-bold text-lg text-purple-300">Minha Coleção</h2>
             <p className="text-2xl font-mono">{totalCollectedCount} / {totalMiniaturesCount}</p>
+            <p className="text-xs text-green-300 mt-1">{syncStatus}</p>
+            <button onClick={handleLogout} className="mt-2 px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded">Sair</button>
           </div>
         </div>
         <p className="text-2xl text-center text-gray-400">Selecione a marca para visualizar sua coleção.</p>
