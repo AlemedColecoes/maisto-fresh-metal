@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Coleção Maisto</title>
- <style>
+
+  <style>
     body {
       font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, sans-serif;
       margin: 0;
@@ -19,16 +20,6 @@
       border: 4px solid #10b981;
     }
   </style>
-<script type="text/babel">
-  // 1. Defina suas credenciais (pegue no painel do Supabase)
-  const SUPABASE_URL = 'https://yhabiubvjqnblmulhpot.supabase.co';
-  const SUPABASE_ANON_KEY = 'ssb_publishable_dvH5rCozoNrIqdyzKmrunA_oFWWRLjc';
-
-  // 2. Crie a instância do cliente Supabase
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  // ... restante dos seus componentes React (ex: function App() { ... })
-</script>
 
   <script src="libs/tailwind.js"></script>
   <script src="libs/react.js"></script>
@@ -37,13 +28,10 @@
   <script src="libs/jspdf.js"></script>
   <script src="libs/dexie.js"></script>
 
-  <!-- Biblioteca Dexie.js para salvar no banco local do APK sem apagar -->
-  <script src="https://unpkg.com"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- Supabase JS Client -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
- 
+  
 </head>
 <body>
 
@@ -51,6 +39,30 @@
 
 <script type="text/babel">
   const { useState, useEffect, useCallback, useMemo } = React;
+
+  // =========================
+  // SUPABASE
+  // =========================
+  const SUPABASE_URL = 'https://yhabiubvjqnblmulhpot.supabase.co';
+  const SUPABASE_ANON_KEY = 'ssb_publishable_dvH5rCozoNrIqdyzKmrunA_oFWWRLjc';
+  const SUPABASE_TABLE = 'colecao_maisto';
+  const SUPABASE_ROW_ID = 1;
+
+  // Inicializa o Supabase somente se a biblioteca tiver carregado.
+  // Se o Supabase estiver indisponível, o aplicativo continua funcionando
+  // normalmente usando o armazenamento local (IndexedDB).
+  let supabaseClient = null;
+  try {
+    if (window.supabase && typeof window.supabase.createClient === 'function') {
+      supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+      );
+    }
+  } catch (e) {
+    console.warn('Supabase indisponível. O aplicativo continuará em modo local.', e);
+    supabaseClient = null;
+  }
 
   // Inicialização do Banco de Dados local do Aparelho (IndexedDB)
   const db = new Dexie("MaistoDatabase");
@@ -836,38 +848,114 @@ Trator: [
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState('all'); 
     const [loading, setLoading] = useState(true);
+    const [syncStatus, setSyncStatus] = useState('Carregando...');
+    const [cloudLoaded, setCloudLoaded] = useState(false);
 
-    // Carrega dados do IndexedDB ao abrir o app
+    // Carrega primeiro o banco local e depois tenta sincronizar com o Supabase.
     useEffect(() => {
-      async function carregarDadosDoBanco() {
+      let ativo = true;
+
+      async function carregarDados() {
         try {
-          const dadosColecao = await db.estadoApp.get("colecao");
-          const dadosTravados = await db.estadoApp.get("travados");
-          
-          if (dadosColecao) setCollection(dadosColecao.valor);
-          if (dadosTravados) setLockedItems(dadosTravados.valor);
+          const dadosColecaoLocal = await db.estadoApp.get("colecao");
+          const dadosTravadosLocal = await db.estadoApp.get("travados");
+
+          if (dadosColecaoLocal?.valor) setCollection(dadosColecaoLocal.valor);
+          if (dadosTravadosLocal?.valor) setLockedItems(dadosTravadosLocal.valor);
+
+          if (!supabaseClient) {
+            if (ativo) setSyncStatus('Modo local — Supabase não carregado');
+            return;
+          }
+
+          setSyncStatus('Conectando ao Supabase...');
+
+          const { data, error } = await supabaseClient
+            .from(SUPABASE_TABLE)
+            .select('id, collection, locked_items, updated_at')
+            .eq('id', SUPABASE_ROW_ID)
+            .maybeSingle();
+
+          if (error) throw error;
+
+          if (data) {
+            if (data.collection && typeof data.collection === 'object') {
+              setCollection(data.collection);
+              await db.estadoApp.put({ chave: "colecao", valor: data.collection });
+            }
+            if (data.locked_items && typeof data.locked_items === 'object') {
+              setLockedItems(data.locked_items);
+              await db.estadoApp.put({ chave: "travados", valor: data.locked_items });
+            }
+            if (ativo) {
+              setCloudLoaded(true);
+              setSyncStatus('Sincronizado com Supabase');
+            }
+          } else {
+            const localCollection = dadosColecaoLocal?.valor || {};
+            const localLocked = dadosTravadosLocal?.valor || {};
+            const { error: insertError } = await supabaseClient
+              .from(SUPABASE_TABLE)
+              .insert({
+                id: SUPABASE_ROW_ID,
+                collection: localCollection,
+                locked_items: localLocked,
+                updated_at: new Date().toISOString()
+              });
+            if (insertError) throw insertError;
+            if (ativo) {
+              setCloudLoaded(true);
+              setSyncStatus('Sincronizado com Supabase');
+            }
+          }
         } catch (error) {
-          console.error("Erro ao carregar dados locais:", error);
+          console.error('Erro na sincronização com Supabase:', error);
+          if (ativo) {
+            setCloudLoaded(false);
+            setSyncStatus('Modo local — Supabase não conectado');
+          }
         } finally {
-          setLoading(false);
+          if (ativo) setLoading(false);
         }
       }
-      carregarDadosDoBanco();
+
+      carregarDados();
+      return () => { ativo = false; };
     }, []);
 
-    // Salva a coleção no banco local automaticamente
+    // Salva sempre uma cópia local.
     useEffect(() => {
-      if (!loading) {
-        db.estadoApp.put({ chave: "colecao", valor: collection });
-      }
+      if (!loading) db.estadoApp.put({ chave: "colecao", valor: collection });
     }, [collection, loading]);
 
-    // Salva os itens bloqueados no banco local automaticamente
     useEffect(() => {
-      if (!loading) {
-        db.estadoApp.put({ chave: "travados", valor: lockedItems });
-      }
+      if (!loading) db.estadoApp.put({ chave: "travados", valor: lockedItems });
     }, [lockedItems, loading]);
+
+    // Sincroniza alterações com o Supabase, com pequeno atraso para evitar excesso de gravações.
+    useEffect(() => {
+      if (loading || !cloudLoaded || !supabaseClient) return;
+
+      const timer = setTimeout(async () => {
+        try {
+          setSyncStatus('Salvando no Supabase...');
+          const { error } = await supabaseClient
+            .from(SUPABASE_TABLE)
+            .upsert({
+              id: SUPABASE_ROW_ID,
+              collection,
+              locked_items: lockedItems,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+          if (error) throw error;
+          setSyncStatus('Sincronizado com Supabase');
+        } catch (error) {
+          console.error('Erro ao salvar no Supabase:', error);
+          setSyncStatus('Erro ao sincronizar — dados locais preservados');
+        }
+      }, 700);
+      return () => clearTimeout(timer);
+    }, [collection, lockedItems, loading, cloudLoaded]);
 
     useEffect(() => {
       const handlePopState = () => {
